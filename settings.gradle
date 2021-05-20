@@ -1,0 +1,3 @@
+rootProject.name='VideoCapture'
+include ':app'
+include ':framework'
