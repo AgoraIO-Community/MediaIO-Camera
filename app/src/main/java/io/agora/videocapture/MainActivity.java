@@ -86,9 +86,7 @@ public class MainActivity extends AppCompatActivity {
         // needs to load resource files from local storage.
         // The loading may block the video rendering for a
         // little while.
-        mCameraVideoManager = new CameraVideoManager(this, null);
-
-        mCameraVideoManager.enableDebug();
+        mCameraVideoManager = new CameraVideoManager(this, null, true);
 
         mCameraVideoManager.setCameraStateListener(new VideoCapture.VideoCaptureStateListener() {
             @Override

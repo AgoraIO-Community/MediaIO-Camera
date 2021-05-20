@@ -49,6 +49,11 @@ public class CameraVideoManager {
         init(context, preprocessor, DEFAULT_FACING);
     }
 
+    public CameraVideoManager(Context context, IPreprocessor preprocessor, boolean enableDebug) {
+        LogUtil.setDEBUG(enableDebug);
+        init(context, preprocessor, DEFAULT_FACING);
+    }
+
     public CameraVideoManager(Context context) {
         init(context, null, DEFAULT_FACING);
     }
@@ -231,7 +236,4 @@ public class CameraVideoManager {
         }
     }
 
-    public void enableDebug(){
-        LogUtil.setDEBUG(true);
-    }
 }
