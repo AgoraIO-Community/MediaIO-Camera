@@ -236,4 +236,10 @@ public class CameraVideoManager {
         }
     }
 
+    public void updatePreviewOrientation() {
+        if (mCameraChannel != null) {
+            mCameraChannel.updatePreviewOrientation();
+        }
+    }
+
 }

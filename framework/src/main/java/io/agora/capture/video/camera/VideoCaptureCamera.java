@@ -10,6 +10,8 @@ import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
+import android.view.Surface;
+import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
 
@@ -154,7 +156,7 @@ public class VideoCaptureCamera
 
         // Making the texture transformation behaves
         // as the same as Camera2 api.
-        mCamera.setDisplayOrientation(90);
+        mCamera.setDisplayOrientation(getDisplayOrientation(cameraInfo));
         Camera.Parameters parameters = getCameraParameters(mCamera);
         if (parameters == null) {
             mCamera = null;
@@ -323,6 +325,53 @@ public class VideoCaptureCamera
         if (stateListener != null) {
             stateListener.onCameraClosed();
         }
+    }
+
+    @Override
+    void updatePreviewOrientation() {
+        LogUtil.e(TAG, "vide isUpsideDown: 33");
+
+        Camera.CameraInfo cameraInfo = getCameraInfo(mCameraId);
+        if (mCamera == null || cameraInfo == null) {
+            LogUtil.e(TAG, "vide isUpsideDown: mCamera is" + mCamera + "cameraInfo is " + cameraInfo);
+
+            return;
+        }
+        mCamera.setDisplayOrientation(getDisplayOrientation(cameraInfo));
+    }
+
+    private int getDisplayOrientation(Camera.CameraInfo cameraInfo) {
+
+        int rotation = ((WindowManager) pContext.getSystemService(Context.WINDOW_SERVICE))
+                .getDefaultDisplay().getRotation();
+
+        int degrees = 0;
+        switch (rotation) {
+            case Surface.ROTATION_0: {
+                degrees = 0;
+                break;
+            }
+            case Surface.ROTATION_90: {
+                degrees = 90;
+                break;
+            }
+            case Surface.ROTATION_180: {
+                degrees = 180;
+                break;
+            }
+            case Surface.ROTATION_270: {
+                degrees = 270;
+                break;
+            }
+        }
+        int displayOrientation;
+        if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            displayOrientation = (cameraInfo.orientation + degrees) % 360;
+            displayOrientation = (360 - displayOrientation) % 360;
+        } else {
+            displayOrientation = (cameraInfo.orientation - degrees + 360) % 360;
+        }
+        return displayOrientation;
     }
 
     @Override

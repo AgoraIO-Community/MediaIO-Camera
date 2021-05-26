@@ -115,6 +115,11 @@ public abstract class VideoCapture extends VideoProducer {
 
     public abstract void deallocate(boolean disconnect);
 
+    /**
+     * update preview orientation
+     */
+    abstract void updatePreviewOrientation();
+
     void deallocate() {
         deallocate(true);
     }

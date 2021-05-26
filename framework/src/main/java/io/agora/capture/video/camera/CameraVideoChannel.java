@@ -4,6 +4,7 @@ import android.content.Context;
 
 import io.agora.capture.framework.modules.channels.ChannelManager;
 import io.agora.capture.framework.modules.channels.VideoChannel;
+import io.agora.capture.framework.util.LogUtil;
 
 public class CameraVideoChannel extends VideoChannel {
     private static final String TAG = CameraVideoChannel.class.getSimpleName();
@@ -116,4 +117,17 @@ public class CameraVideoChannel extends VideoChannel {
             getHandler().postAtFrontOfQueue(() -> mVideoCapture.setCaptureStateListener(listener));
         }
     }
+
+
+    public void updatePreviewOrientation() {
+        if (isRunning()) {
+            getHandler().postAtFrontOfQueue(() -> {
+                if (mCapturedStarted) {
+                    LogUtil.e(TAG, "video isUpsideDown: 22" );
+                    mVideoCapture.updatePreviewOrientation();
+                }
+            });
+        }
+    }
+
 }

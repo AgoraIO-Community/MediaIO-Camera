@@ -492,6 +492,11 @@ public class VideoCaptureCamera2 extends VideoCapture {
         }
     }
 
+    @Override
+    void updatePreviewOrientation() {
+
+    }
+
     private byte[] YUV_420_888toNV21(Image image) {
         int width = image.getWidth();
         int height = image.getHeight();
