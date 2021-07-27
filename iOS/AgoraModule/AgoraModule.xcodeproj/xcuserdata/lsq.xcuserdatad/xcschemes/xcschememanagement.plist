@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>SchemeUserState</key>
+	<dict>
+		<key>AGMBase.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
+		<key>AGMCapturer.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>2</integer>
+		</dict>
+		<key>AGMRenderer.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>4</integer>
+		</dict>
+		<key>AgoraModule.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>0</integer>
+		</dict>
+		<key>FrameworkBuild.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>3</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>09E7CA02252B0F3A00C3C2C8</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>09E7CA1D252B0F3A00C3C2C8</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>09E7CA3E252B108000C3C2C8</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>09E7CA6F252B21E700C3C2C8</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>09E7CA91252B629A00C3C2C8</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+	</dict>
+</dict>
+</plist>
