@@ -401,7 +401,7 @@
         return;
     }
     self.camera.focusPointOfInterest = point;
-    self.camera.focusMode = AVCaptureFocusModeContinuousAutoFocus;
+    self.camera.focusMode = AVCaptureFocusModeAutoFocus;
     [self.camera unlockForConfiguration];
 }
 
