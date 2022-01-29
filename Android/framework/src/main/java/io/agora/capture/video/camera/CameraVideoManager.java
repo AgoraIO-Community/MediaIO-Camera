@@ -1,8 +1,11 @@
 package io.agora.capture.video.camera;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.view.SurfaceView;
 import android.view.TextureView;
+
+import androidx.annotation.Nullable;
 
 import io.agora.capture.framework.modules.channels.ChannelManager;
 import io.agora.capture.framework.modules.consumers.IVideoConsumer;
@@ -228,6 +231,41 @@ public class CameraVideoManager {
         if (mCameraChannel != null) {
             mCameraChannel.setOnScreenConsumerMirror(mode);
         }
+    }
+
+    public void setWaterMark(@Nullable Bitmap waterMarkBitmap) {
+        setWaterMark(waterMarkBitmap, 1f);
+    }
+
+
+    @Nullable
+    public Bitmap getWaterMark() {
+        if (mCameraChannel != null) {
+            return mCameraChannel.getWatermarkBitmap();
+        }
+        return null;
+    }
+
+    /**
+     * TODO Optimize code to better support change alpha channel dynamically
+     */
+    private void setWaterMark(@Nullable Bitmap waterMarkBitmap, float waterMarkAlpha) {
+        if (mCameraChannel != null) {
+            mCameraChannel.setWatermark(waterMarkBitmap, waterMarkAlpha);
+        }
+    }
+
+    private void setWaterMarkAlpha(float waterMarkAlpha) {
+        if (mCameraChannel != null) {
+            mCameraChannel.setWatermarkAlpha(waterMarkAlpha);
+        }
+    }
+
+    private float getWatermarkAlpha(){
+        if (mCameraChannel != null) {
+            return mCameraChannel.getWatermarkAlpha();
+        }
+        return 1f;
     }
 
     public void setCameraStateListener(VideoCapture.VideoCaptureStateListener listener) {

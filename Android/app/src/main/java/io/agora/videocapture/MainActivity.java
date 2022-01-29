@@ -1,17 +1,30 @@
 package io.agora.videocapture;
 
 import android.Manifest;
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.ImageDecoder;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.RelativeLayout;
+import android.widget.SeekBar;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContract;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import io.agora.capture.video.camera.CameraVideoManager;
 import io.agora.capture.video.camera.Constant;
@@ -19,62 +32,75 @@ import io.agora.capture.video.camera.VideoCapture;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
-    private static final int REQUEST = 1;
-
-    private static final String[] PERMISSIONS = {
-            Manifest.permission.CAMERA
-    };
 
     private CameraVideoManager mCameraVideoManager;
     private SurfaceView mVideoSurface;
     private RelativeLayout mVideoLayout;
-    private boolean mPermissionGranted;
+
+    private SeekBar sliderWatermarkAlpha;
+
     private boolean mFinished;
     private boolean mIsMirrored = true;
+
+    private final ActivityResultLauncher<Void> imageLauncher = registerForActivityResult(new PickImage(), resultUri -> {
+        if (resultUri != null) {
+            doSetWatermark(resultUri);
+        } else {
+            showSelectNullDialog();
+        }
+    });
+
+    private final ActivityResultLauncher<String> cameraPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+        if (granted) initCamera();
+        else Toast.makeText(MainActivity.this, "相机权限被拒绝", Toast.LENGTH_SHORT).show();
+    });
+
+    private final ActivityResultLauncher<String> readStoragePermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+        if (granted) imageLauncher.launch(null);
+        else Toast.makeText(MainActivity.this, "读取权限被拒绝", Toast.LENGTH_SHORT).show();
+    });
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        initView();
         checkCameraPermission();
     }
 
+    private void initView() {
+//        sliderWatermarkAlpha = findViewById(R.id.slider_watermark_alpha);
+//        sliderWatermarkAlpha.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+//            @Override
+//            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+//                if (fromUser)
+//                    mCameraVideoManager.setWaterMarkAlpha(progress / 100f);
+//            }
+//
+//            @Override
+//            public void onStartTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//
+//            @Override
+//            public void onStopTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//        });
+        // 长按清除水印
+        findViewById(R.id.btn_watermark).setOnLongClickListener(v -> {
+            mCameraVideoManager.setWaterMark(null);
+            return true;
+        });
+    }
+
     private void checkCameraPermission() {
-        if (permissionGranted(Manifest.permission.CAMERA)) {
-            onPermissionGranted();
-            mPermissionGranted = true;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            initCamera();
         } else {
-            ActivityCompat.requestPermissions(this, PERMISSIONS, REQUEST);
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
         }
-    }
-
-    private boolean permissionGranted(String permission) {
-        return ContextCompat.checkSelfPermission(this, permission) ==
-                PackageManager.PERMISSION_GRANTED;
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String[] permissions, @NonNull int[] grantResults) {
-        boolean granted = true;
-        if (requestCode == REQUEST) {
-             for (String permission : permissions) {
-                 if (!permissionGranted(permission)) {
-                     granted = false;
-                 }
-             }
-        }
-
-        if (granted) {
-            onPermissionGranted();
-            mPermissionGranted = true;
-        } else {
-            ActivityCompat.requestPermissions(this, PERMISSIONS, REQUEST);
-        }
-    }
-
-    private void onPermissionGranted() {
-        initCamera();
     }
 
     private void initCamera() {
@@ -142,16 +168,76 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void chooseImage(View v) {
+        imageLauncher.launch(null);
+    }
+
     private int toMirrorMode(boolean isMirrored) {
         return isMirrored ? Constant.MIRROR_MODE_ENABLED : Constant.MIRROR_MODE_DISABLED;
+    }
+
+    private void doSetWatermark(Uri resultUri) {
+        Bitmap watermarkBitmap = null;
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                ImageDecoder.Source source = ImageDecoder.createSource(MainActivity.this.getContentResolver(), resultUri);
+                watermarkBitmap = ImageDecoder.decodeBitmap(source);
+            } else {
+                watermarkBitmap = MediaStore.Images.Media.getBitmap(MainActivity.this.getContentResolver(), resultUri);
+            }
+        } catch (SecurityException e) {
+            showRequestStoragePermissionDialog();
+        } catch (Exception e) {
+            Toast.makeText(this, "Error happened in fetching bitmap\n"+e.getMessage(), Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        }
+
+        if (watermarkBitmap != null) {
+            mCameraVideoManager.setWaterMark(watermarkBitmap);
+        }
+//        updateSeekbar(watermarkBitmap);
+    }
+
+    private void clearWatermark(){
+        mCameraVideoManager.setWaterMark(null);
+        // updateUI
+//        updateSeekbar(null);
+    }
+
+//    private void updateSeekbar(@Nullable Bitmap watermarkBitmap){
+//        sliderWatermarkAlpha.setVisibility(watermarkBitmap == null ? View.GONE : View.VISIBLE);
+//        if (watermarkBitmap != null) {
+//            sliderWatermarkAlpha.setProgress(100);
+//        }
+//    }
+
+    private void showRequestStoragePermissionDialog() {
+        new AlertDialog.Builder(this).setMessage("由于安卓设备的多样性，您的设备要求即使使用系统自带选图功能，仍需要对APP授权才能访问此图片，是否继续？")
+                .setCancelable(false)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> readStoragePermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)).show();
+    }
+
+
+    private void showSelectNullDialog() {
+        if (mCameraVideoManager.getWaterMark() != null)
+            new AlertDialog.Builder(this).setMessage("未做任何选择，是否清除水印？\n长按【水印】按钮也可清除。")
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(android.R.string.ok, (dialog, which) -> clearWatermark()).show();
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        if (mPermissionGranted && mCameraVideoManager != null) {
+        if (mCameraVideoManager != null) {
             mCameraVideoManager.startCapture();
         }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (!mFinished && mCameraVideoManager != null) mCameraVideoManager.stopCapture();
     }
 
     @Override
@@ -161,9 +247,20 @@ public class MainActivity extends AppCompatActivity {
         if (mCameraVideoManager != null) mCameraVideoManager.stopCapture();
     }
 
-    @Override
-    public void onStop() {
-        super.onStop();
-        if (!mFinished && mCameraVideoManager != null) mCameraVideoManager.stopCapture();
+
+    public static final class PickImage extends ActivityResultContract<Void, Uri> {
+
+        @NonNull
+        @Override
+        public Intent createIntent(@NonNull Context context, @Nullable Void input) {
+            return new Intent(Intent.ACTION_PICK).setType("image/*");
+        }
+
+        @Nullable
+        @Override
+        public Uri parseResult(int resultCode, @Nullable Intent intent) {
+            if (intent == null || resultCode != Activity.RESULT_OK) return null;
+            return intent.getData();
+        }
     }
 }

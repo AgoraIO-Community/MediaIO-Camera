@@ -1,17 +1,22 @@
 package io.agora.capture.framework.modules.channels;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.opengl.EGLContext;
 import android.opengl.EGLSurface;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.text.TextUtils;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import io.agora.capture.framework.gles.ProgramTexture2d;
 import io.agora.capture.framework.gles.ProgramTextureOES;
+import io.agora.capture.framework.gles.ProgramWatermark;
 import io.agora.capture.framework.gles.core.EglCore;
 import io.agora.capture.framework.modules.consumers.IVideoConsumer;
 import io.agora.capture.framework.modules.processors.IPreprocessor;
@@ -30,6 +35,8 @@ public class VideoChannel extends HandlerThread {
     private List<IVideoConsumer> mOnScreenConsumers = new ArrayList<>();
     private List<IVideoConsumer> mOffScreenConsumers = new ArrayList<>();
     private int mOnScreenConsumerMirrorMode;
+    private Bitmap watermarkBitmap;
+    private float watermarkAlpha;
     private IPreprocessor mPreprocessor;
 
     // Used to rotate the image to normal direction according
@@ -78,6 +85,7 @@ public class VideoChannel extends HandlerThread {
         mContext.setEglCore(eglCore);
         mDummyEglSurface = eglCore.createOffscreenSurface(1, 1);
         eglCore.makeCurrent(mDummyEglSurface);
+        mContext.setProgramWatermark(new ProgramWatermark());
         mContext.setProgram2D(new ProgramTexture2d());
         mContext.setProgramOES(new ProgramTextureOES());
     }
@@ -215,6 +223,7 @@ public class VideoChannel extends HandlerThread {
                         consumer.getDrawingTarget(), consumer.getId());
                 mOnScreenConsumers.add(consumer);
                 consumer.setMirrorMode(mOnScreenConsumerMirrorMode);
+                consumer.setWatermark(watermarkBitmap, watermarkAlpha);
             } else if (type == IVideoConsumer.TYPE_OFF_SCREEN) {
                 removeSameConsumers(mOffScreenConsumers,
                         consumer.getDrawingTarget(), consumer.getId());
@@ -255,6 +264,37 @@ public class VideoChannel extends HandlerThread {
                 consumer.setMirrorMode(mOnScreenConsumerMirrorMode);
             }
         });
+    }
+
+    public void setWatermark(@Nullable Bitmap watermarkBitmap, float watermarkAlpha) {
+        if (this.watermarkBitmap != null) this.watermarkBitmap.recycle();
+        this.watermarkBitmap = watermarkBitmap;
+        this.watermarkAlpha = watermarkAlpha;
+
+        mHandler.post(() -> {
+            for (IVideoConsumer consumer : mOnScreenConsumers) {
+                consumer.setWatermark(this.watermarkBitmap, watermarkAlpha);
+            }
+        });
+    }
+
+    @Nullable
+    public Bitmap getWatermarkBitmap() {
+        return watermarkBitmap;
+    }
+
+    public void setWatermarkAlpha(float watermarkAlpha) {
+        this.watermarkAlpha = watermarkAlpha;
+
+        mHandler.post(() -> {
+            for (IVideoConsumer consumer : mOnScreenConsumers) {
+                consumer.setWatermark(this.watermarkBitmap, watermarkAlpha);
+            }
+        });
+    }
+
+    public float getWatermarkAlpha() {
+        return watermarkAlpha;
     }
 
     public void disconnectConsumer(IVideoConsumer consumer) {
@@ -350,6 +390,8 @@ public class VideoChannel extends HandlerThread {
         private EglCore mEglCore;
         private ProgramTexture2d mProgram2D;
         private ProgramTextureOES mProgramOES;
+        @Nullable
+        private ProgramWatermark mProgramWatermark;
 
         public Context getContext() {
             return mContext;
@@ -369,6 +411,15 @@ public class VideoChannel extends HandlerThread {
 
         public EGLContext getEglContext() {
             return getEglCore().getEGLContext();
+        }
+
+        @Nullable
+        public ProgramWatermark getProgramWatermark() {
+            return mProgramWatermark;
+        }
+
+        public void setProgramWatermark(@Nullable ProgramWatermark mFullFrameRectTexture2D) {
+            this.mProgramWatermark = mFullFrameRectTexture2D;
         }
 
         public ProgramTexture2d getProgram2D() {

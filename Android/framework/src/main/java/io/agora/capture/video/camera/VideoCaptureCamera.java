@@ -4,6 +4,7 @@
 
 package io.agora.capture.video.camera;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
@@ -109,6 +110,7 @@ public class VideoCaptureCamera
         super(context);
     }
 
+    @SuppressLint("WrongConstant")
     @Override
     public boolean allocate(final int width, final int height, final int frameRate, final int facing) {
         LogUtil.d(TAG, "allocate: requested width: " + width + " height: " + height + " fps: " + frameRate);
