@@ -137,7 +137,6 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
             mvp = mMirrorMatrix;
         }
 
-//        setupWatermark1(frame, context, mvp);
         setupWatermark2(surfaceWidth, surfaceHeight, mvp, frame, context);
 //        setupWatermark3(surfaceWidth, surfaceHeight, mvp, frame, context);
 
@@ -150,18 +149,6 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
 
     public void setMirrorMode(int mode) {
         mirrorMode = mode;
-    }
-
-    /**
-     * Do not support watermark
-     */
-    private void setupWatermark1(VideoCaptureFrame frame, VideoChannel.ChannelContext context, float[] mvp) {
-        if (frame.format.getTexFormat() == GLES20.GL_TEXTURE_2D) {
-            context.getProgram2D().drawFrame(frame.textureId, frame.textureTransform, mvp);
-        } else if (frame.format.getTexFormat() == GLES11Ext.GL_TEXTURE_EXTERNAL_OES) {
-            context.getProgramOES().drawFrame(
-                    frame.textureId, frame.textureTransform, mvp);
-        }
     }
 
     /**
