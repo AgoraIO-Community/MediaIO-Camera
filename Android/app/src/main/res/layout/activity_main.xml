@@ -3,25 +3,51 @@
     android:id="@+id/video_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <androidx.appcompat.widget.AppCompatImageView
+
+    <ImageButton
         android:id="@+id/switch_camera"
-        android:layout_width="42dp"
-        android:layout_height="42dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
         android:layout_marginTop="20dp"
         android:layout_marginEnd="20dp"
-        android:src="@mipmap/camera_change"
-        android:onClick="onCameraChange"/>
-    <androidx.appcompat.widget.AppCompatButton
+        android:elevation="4dp"
+        android:onClick="onCameraChange"
+        android:padding="12dp"
+        android:src="@drawable/ic_switch_camera" />
+
+    <Button
         android:id="@+id/mirror_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
         android:layout_alignParentStart="true"
-        android:layout_marginTop="20dp"
+        android:layout_alignParentTop="true"
         android:layout_marginStart="20dp"
+        android:layout_marginTop="20dp"
+        android:onClick="onMirrorModeChanged"
         android:text="Mirror Mode"
-        android:textAllCaps="false"
-        android:onClick="onMirrorModeChanged"/>
+        android:textAllCaps="false" />
+
+    <ImageButton
+        android:id="@+id/btn_watermark"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/switch_camera"
+        android:layout_alignEnd="@id/switch_camera"
+        android:elevation="4dp"
+        android:onClick="chooseImage"
+        android:padding="12dp"
+        android:src="@drawable/ic_watermark" />
+
+    <SeekBar
+        android:id="@+id/slider_watermark_alpha"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_watermark"
+        android:layout_marginStart="100dp"
+        android:elevation="4dp"
+        android:max="100"
+        android:progress="100"
+        android:visibility="gone" />
 </RelativeLayout>

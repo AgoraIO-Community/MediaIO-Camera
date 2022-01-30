@@ -1,11 +1,16 @@
 package io.agora.capture.framework.modules.consumers;
 
+import android.graphics.Bitmap;
 import android.opengl.EGL14;
 import android.opengl.EGLSurface;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
+import android.util.Log;
 
+import androidx.annotation.Nullable;
+
+import io.agora.capture.framework.gles.ProgramWatermark;
 import io.agora.capture.framework.gles.core.EglCore;
 import io.agora.capture.framework.gles.core.GlUtil;
 import io.agora.capture.framework.modules.channels.ChannelManager;
@@ -30,8 +35,17 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
     private float[] mMirrorMatrix = new float[16];
     private volatile boolean mViewportInit;
 
+    private float[] mCameraMVPMatrix;
+
+    @Nullable
+    private Bitmap watermarkBitmap;
+    private int watermarkIdThisTime;
+    private float watermarkAlpha = 1.0f;
+
     BaseWindowConsumer(VideoModule videoModule) {
         this.videoModule = videoModule;
+        mCameraMVPMatrix = new float[16];
+        Matrix.setIdentityM(mCameraMVPMatrix, 0);
     }
 
     @Override
@@ -52,6 +66,7 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
      * in the consumer list.
      * Consumers of the same type with null or empty tags will be
      * considered as different consumers.
+     *
      * @param mId tag of the consumer
      */
     public void setId(String mId) {
@@ -104,7 +119,7 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
 
         int surfaceWidth = onMeasuredWidth();
         int surfaceHeight = onMeasuredHeight();
-        GLES20.glViewport(0, 0, surfaceWidth, surfaceHeight);
+        // GLES20.glViewport(0, 0, surfaceWidth, surfaceHeight);
 
         if (!mViewportInit) {
             mMVPMatrix = GlUtil.changeMVPMatrix(
@@ -122,21 +137,125 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
             mvp = mMirrorMatrix;
         }
 
-        if (frame.format.getTexFormat() == GLES20.GL_TEXTURE_2D) {
-            context.getProgram2D().drawFrame(
-                    frame.textureId, frame.textureTransform, mvp);
-        } else if (frame.format.getTexFormat() == GLES11Ext.GL_TEXTURE_EXTERNAL_OES) {
-            context.getProgramOES().drawFrame(
-                    frame.textureId, frame.textureTransform, mvp);
-        }
+        setupWatermark2(surfaceWidth, surfaceHeight, mvp, frame, context);
+//        setupWatermark3(surfaceWidth, surfaceHeight, mvp, frame, context);
 
         if (drawingEglSurface != null) {
             eglCore.swapBuffers(drawingEglSurface);
         }
+
+        // GLES20.glDisable(GLES20.GL_BLEND);
     }
 
     public void setMirrorMode(int mode) {
         mirrorMode = mode;
+    }
+
+    /**
+     * Support watermark, can not change watermark alpha channel
+     */
+    private void setupWatermark2(int surfaceWidth, int surfaceHeight, float[] mvp, VideoCaptureFrame frame, VideoChannel.ChannelContext context) {
+
+        if (null != watermarkBitmap && !watermarkBitmap.isRecycled()) {
+            ProgramWatermark desiredWatermarkProgram = context.getProgramWatermark();
+            if (desiredWatermarkProgram != null) {
+                if (desiredWatermarkProgram.getWatermarkId() == 0 || watermarkIdThisTime == 0) {
+                    GLES20.glEnable(GLES20.GL_BLEND);
+                    GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+                    context.getProgramWatermark().createWaterTexture2(watermarkBitmap);
+                }
+            }
+        } else {
+            ProgramWatermark desiredWatermarkProgram = context.getProgramWatermark();
+            if (desiredWatermarkProgram != null) {
+                context.getProgramWatermark().disableWatermarkId();
+                GLES20.glDisable(GLES20.GL_BLEND);
+            }
+        }
+
+        if (frame.format.getTexFormat() == GLES20.GL_TEXTURE_2D) {
+            GLES20.glViewport(0, 0, frame.format.getWidth(), frame.format.getHeight());
+            // draw camera and water to fbo
+            context.getProgramWatermark().update(frame.format.getWidth(), frame.format.getHeight());
+            frame.textureId = context.getProgramWatermark().drawRotateFrame(frame.textureId, frame.textureTransform, mCameraMVPMatrix);
+
+            // draw fbo.getTextureId
+            GLES20.glViewport(0, 0, surfaceWidth, surfaceHeight);
+            context.getProgram2D().drawFrame(frame.textureId, frame.textureTransform, mvp);
+        } else if (frame.format.getTexFormat() == GLES11Ext.GL_TEXTURE_EXTERNAL_OES) {
+            GLES20.glViewport(0, 0, surfaceWidth, surfaceHeight);
+            context.getProgramOES().drawFrame(frame.textureId, frame.textureTransform, mvp);
+        }
+    }
+
+    /**
+     * Support change watermark alpha channel dynamically
+     */
+    private void setupWatermark3(int surfaceWidth, int surfaceHeight, float[] mvp, VideoCaptureFrame frame, VideoChannel.ChannelContext context) {
+        ProgramWatermark desiredWatermarkProgram = context.getProgramWatermark();
+        // Watermark is enabled
+        if (null != watermarkBitmap && !watermarkBitmap.isRecycled()) {
+            // But program is null || Bitmap changed || Alpha changed <==> initialize a new ProgramWatermark
+            if (desiredWatermarkProgram == null || watermarkIdThisTime == 0) {
+                desiredWatermarkProgram = new ProgramWatermark(this.watermarkAlpha);
+                context.setProgramWatermark(desiredWatermarkProgram);
+            }
+            // Now it is definitely not null, check the textureId, exist? <==> No-OP ,else create a new one
+            if (desiredWatermarkProgram.getWatermarkId() == 0) {
+                GLES20.glEnable(GLES20.GL_BLEND);
+                GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+                desiredWatermarkProgram.createWaterTexture2(watermarkBitmap);
+
+                this.watermarkIdThisTime = desiredWatermarkProgram.getWatermarkId();
+            }
+        } else { // Watermark id disabled
+            if (desiredWatermarkProgram != null) {
+                desiredWatermarkProgram.destroyProgram();
+                desiredWatermarkProgram = null;
+                context.setProgramWatermark(null);
+                GLES20.glDisable(GLES20.GL_BLEND);
+            }
+        }
+
+        if (frame.format.getTexFormat() == GLES20.GL_TEXTURE_2D) {
+            if (desiredWatermarkProgram != null) {
+                GLES20.glViewport(0, 0, frame.format.getWidth(), frame.format.getHeight());
+                desiredWatermarkProgram.update(frame.format.getWidth(), frame.format.getHeight());
+                frame.textureId = desiredWatermarkProgram.drawRotateFrame(frame.textureId, frame.textureTransform, mCameraMVPMatrix);
+            }
+            // draw fbo.getTextureId
+            GLES20.glViewport(0, 0, surfaceWidth, surfaceHeight);
+
+            context.getProgram2D().drawFrame(frame.textureId, frame.textureTransform, mvp);
+        } else if (frame.format.getTexFormat() == GLES11Ext.GL_TEXTURE_EXTERNAL_OES) {
+            GLES20.glViewport(0, 0, surfaceWidth, surfaceHeight);
+            context.getProgramOES().drawFrame(frame.textureId, frame.textureTransform, mvp);
+        }
+    }
+
+    /**
+     * create a watermarkBitmap through param bitmap
+     *
+     * @param bitmap from VideoChanel.
+     * @param alpha  apply this to bitmap alpha channel
+     */
+    @Override
+    public void setWatermark(@Nullable Bitmap bitmap, float alpha) {
+        // Recycle unused bitmap every time
+        if (this.watermarkBitmap != null) this.watermarkBitmap.recycle();
+
+        this.watermarkIdThisTime = 0;
+
+        if (null != bitmap && alpha != 0f) {
+            android.graphics.Matrix mx = new android.graphics.Matrix();
+            mx.setRotate(180);
+            mx.setScale(1, -1);
+            this.watermarkBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), mx, true);
+            Log.d("lq", "setWatermark: " + bitmap + "," + this.watermarkBitmap);
+            this.watermarkAlpha = alpha;
+        } else {
+            this.watermarkBitmap = null;
+        }
     }
 
     protected void resetViewport() {
