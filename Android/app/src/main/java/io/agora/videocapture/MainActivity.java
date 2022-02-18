@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.SurfaceView;
+import android.view.TextureView;
 import android.view.View;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
@@ -34,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
 
     private CameraVideoManager mCameraVideoManager;
-    private SurfaceView mVideoSurface;
+    private TextureView mVideoSurface;
     private RelativeLayout mVideoLayout;
 
     private SeekBar sliderWatermarkAlpha;
@@ -144,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
 
         // The preview surface is actually considered as
         // an on-screen consumer under the hood.
-        mVideoSurface = new SurfaceView(this);
+        mVideoSurface = new TextureView(this);
         mVideoLayout = findViewById(R.id.video_layout);
         mVideoLayout.addView(mVideoSurface);
         mCameraVideoManager.setLocalPreview(mVideoSurface, "Surface1");
