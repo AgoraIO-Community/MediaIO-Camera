@@ -42,8 +42,9 @@ public class ChannelManager {
     }
 
     public void disconnectProducer(int id) {
-        ensureChannelRunning(id);
-        mChannels[id].disconnectProducer();
+        if(ensureChannelRunning(id)){
+            mChannels[id].disconnectProducer();
+        }
     }
 
     public VideoChannel connectConsumer(IVideoConsumer consumer, int id, int type) {
@@ -53,19 +54,25 @@ public class ChannelManager {
     }
 
     public void disconnectConsumer(IVideoConsumer consumer, int id) {
-        ensureChannelRunning(id);
-        mChannels[id].disconnectConsumer(consumer);
+        if(ensureChannelRunning(id)){
+            mChannels[id].disconnectConsumer(consumer);
+        }
     }
 
-    public void ensureChannelRunning(int channelId) {
+    public boolean ensureChannelRunning(int channelId) {
         checkChannelId(channelId);
+        try{
+            if (mChannels[channelId] == null) {
+                mChannels[channelId] = createVideoChannel(channelId);
+            }
 
-        if (mChannels[channelId] == null) {
-            mChannels[channelId] = createVideoChannel(channelId);
+            if (!mChannels[channelId].isRunning()) {
+                mChannels[channelId].startChannel();
+            }
+            return true;
         }
-
-        if (!mChannels[channelId].isRunning()) {
-            mChannels[channelId].startChannel();
+        catch (RuntimeException e){
+            return false;
         }
     }
 
