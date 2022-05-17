@@ -8,6 +8,7 @@ import java.nio.FloatBuffer;
 import io.agora.capture.framework.gles.core.Drawable2d;
 import io.agora.capture.framework.gles.core.GlUtil;
 import io.agora.capture.framework.gles.core.Program;
+import io.agora.capture.framework.util.LogUtil;
 
 public class RotateProgramOES extends Program {
     private static final String CAMERA_INPUT_VERTEX_SHADER =
@@ -98,9 +99,11 @@ public class RotateProgramOES extends Program {
     private void bindFramebuffer(int width, int height) {
         GLES20.glGenFramebuffers(1, mFramebuffer, 0);
         GlUtil.checkGlError("glGenFramebuffers");
+        LogUtil.d(this, "EGL >> bindFramebuffer glGenFramebuffers framebuffer=" + mFramebuffer[0] );
 
         GLES20.glGenTextures(1, mTargetTexture, 0);
         GlUtil.checkGlError("glGenTextures");
+        LogUtil.d(this, "EGL >> bindFramebuffer glGenTextures texture=" + mTargetTexture[0] );
 
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTargetTexture[0]);
         GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, width, height, 0,
@@ -128,11 +131,13 @@ public class RotateProgramOES extends Program {
     private void deleteFramebuffer() {
         if (mTargetTexture[0] != 0) {
             GLES20.glDeleteTextures(1, mTargetTexture, 0);
+            LogUtil.d(this, "EGL >> deleteFramebuffer glDeleteTextures texture=" + mTargetTexture[0] );
             mTargetTexture[0] = 0;
         }
 
         if (mFramebuffer[0] != 0) {
             GLES20.glDeleteFramebuffers(1, mFramebuffer, 0);
+            LogUtil.d(this, "EGL >> deleteFramebuffer glDeleteFramebuffers framebuffer=" + mFramebuffer[0] );
             mFramebuffer[0] = 0;
         }
     }

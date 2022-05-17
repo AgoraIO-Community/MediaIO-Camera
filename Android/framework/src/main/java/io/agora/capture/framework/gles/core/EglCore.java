@@ -134,7 +134,7 @@ public final class EglCore {
         int[] values = new int[1];
         EGL14.eglQueryContext(mEGLDisplay, mEGLContext, EGL14.EGL_CONTEXT_CLIENT_VERSION,
                 values, 0);
-        LogUtil.d(TAG, "EGLContext created, client version " + values[0]);
+        LogUtil.d(TAG, "EGL >> EGLContext created, client version " + values[0]);
     }
 
     /**
@@ -193,6 +193,7 @@ public final class EglCore {
             EGL14.eglReleaseThread();
             EGL14.eglTerminate(mEGLDisplay);
         }
+        LogUtil.d(TAG, "EGL >> EGLContext destroy");
 
         mEGLDisplay = EGL14.EGL_NO_DISPLAY;
         mEGLContext = EGL14.EGL_NO_CONTEXT;
@@ -225,6 +226,7 @@ public final class EglCore {
      */
     public void releaseSurface(EGLSurface eglSurface) {
         EGL14.eglDestroySurface(mEGLDisplay, eglSurface);
+        LogUtil.d(TAG, "EGL >> releaseSurface surface=" + eglSurface.toString());
     }
 
     /**
@@ -247,6 +249,7 @@ public final class EglCore {
         if (eglSurface == null) {
             throw new RuntimeException("surface was null");
         }
+        LogUtil.d(TAG, "EGL >> createWindowSurface surface=" + eglSurface.toString());
         return eglSurface;
     }
 
@@ -265,6 +268,7 @@ public final class EglCore {
         if (eglSurface == null) {
             throw new RuntimeException("surface was null");
         }
+        LogUtil.d(TAG, "EGL >> createOffscreenSurface surface=" + eglSurface.toString());
         return eglSurface;
     }
 

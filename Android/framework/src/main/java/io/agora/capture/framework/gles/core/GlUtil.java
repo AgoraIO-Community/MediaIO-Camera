@@ -71,6 +71,7 @@ public abstract class GlUtil {
         if (program == 0) {
             LogUtil.e(TAG, "Could not create program");
         }
+        LogUtil.d("GLUtil", "EGL >> glCreateProgram program=" + program);
         GLES20.glAttachShader(program, vertexShader);
         checkGlError("glAttachShader");
         GLES20.glAttachShader(program, pixelShader);
@@ -147,6 +148,7 @@ public abstract class GlUtil {
         GLES20.glGenTextures(1, textureHandles, 0);
         textureHandle = textureHandles[0];
         GlUtil.checkGlError("glGenTextures");
+        LogUtil.d("GLUtil", "EGL >> createImageTexture glGenTextures texture=" + textureHandles[0] );
 
         // Bind the texture handle to the 2D texture target.
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureHandle);
@@ -180,6 +182,7 @@ public abstract class GlUtil {
         GLES20.glGenTextures(1, textureHandles, 0);
         textureHandle = textureHandles[0];
         GlUtil.checkGlError("glGenTextures");
+        LogUtil.d("GLUtil", "EGL >> createImageTexture glGenTextures texture=" + textureHandles[0] );
 
         // Bind the texture handle to the 2D texture target.
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureHandle);
@@ -242,6 +245,7 @@ public abstract class GlUtil {
         int[] textures = new int[1];
         GLES20.glGenTextures(1, textures, 0);
         GlUtil.checkGlError("glGenTextures");
+        LogUtil.d("GLUtil", "EGL >> createTextureObject glGenTextures type=" + textureTarget + ",texture=" + textures[0] );
 
         int texId = textures[0];
         GLES20.glBindTexture(textureTarget, texId);

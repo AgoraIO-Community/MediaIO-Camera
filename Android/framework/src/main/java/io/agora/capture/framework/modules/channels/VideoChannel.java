@@ -8,7 +8,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.text.TextUtils;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -123,6 +122,10 @@ public class VideoChannel extends HandlerThread {
     }
 
     private void releaseOpenGL() {
+        ProgramWatermark programWatermark = mContext.getProgramWatermark();
+        if(programWatermark != null){
+            programWatermark.destroyProgram();
+        }
         mContext.getProgram2D().release();
         mContext.getProgramOES().release();
         mContext.getEglCore().releaseSurface(mDummyEglSurface);
@@ -167,7 +170,7 @@ public class VideoChannel extends HandlerThread {
         mOffScreenConsumers.clear();
 
         removeOnScreenConsumer();
-        quit();
+        quitSafely();
     }
 
     private void resetOpenGLSurface() {

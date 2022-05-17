@@ -3,6 +3,8 @@ package io.agora.capture.framework.gles.core;
 import android.content.Context;
 import android.opengl.GLES20;
 
+import io.agora.capture.framework.util.LogUtil;
+
 /**
  * Created by tujh on 2018/1/24.
  */
@@ -69,6 +71,7 @@ public abstract class Program {
      */
     public void release() {
         GLES20.glDeleteProgram(mProgramHandle);
+        LogUtil.d(this, "EGL >> glDeleteProgram program=" + mProgramHandle);
         mProgramHandle = -1;
     }
 }

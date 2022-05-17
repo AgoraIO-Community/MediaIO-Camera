@@ -280,4 +280,14 @@ public class CameraVideoManager {
         }
     }
 
+    public void release(){
+        stopCapture();
+        VideoModule.instance().stopChannel(CHANNEL_ID);
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        release();
+    }
 }
