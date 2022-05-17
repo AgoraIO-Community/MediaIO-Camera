@@ -12,7 +12,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.RelativeLayout;
@@ -242,10 +241,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        finish();
+    }
+
+    @Override
     public void finish() {
         super.finish();
         mFinished = true;
-        if (mCameraVideoManager != null) mCameraVideoManager.stopCapture();
+        if (mCameraVideoManager != null) {
+            mCameraVideoManager.release();
+        }
     }
 
 

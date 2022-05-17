@@ -1,7 +1,6 @@
 package io.agora.capture.framework.gles;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
 import android.util.Log;
@@ -14,6 +13,7 @@ import java.nio.ByteBuffer;
 import io.agora.capture.framework.gles.core.Drawable2d;
 import io.agora.capture.framework.gles.core.GlUtil;
 import io.agora.capture.framework.gles.core.Program;
+import io.agora.capture.framework.util.LogUtil;
 
 public class ProgramWatermark extends Program {
 
@@ -77,9 +77,11 @@ public class ProgramWatermark extends Program {
     private void bindFramebuffer(int width, int height) {
         GLES20.glGenFramebuffers(1, mFramebuffer, 0);
         GlUtil.checkGlError("glGenFramebuffers");
+        LogUtil.d(this, "EGL >> bindFramebuffer glGenFramebuffers framebuffer=" + mFramebuffer[0] );
 
         GLES20.glGenTextures(1, mTargetTexture, 0);
         GlUtil.checkGlError("glGenTextures");
+        LogUtil.d(this, "EGL >> bindFramebuffer glGenTextures texture=" + mTargetTexture[0] );
 
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTargetTexture[0]);
         GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, width, height, 0,
@@ -108,11 +110,15 @@ public class ProgramWatermark extends Program {
     private void deleteFramebuffer() {
         if (mTargetTexture[0] != 0) {
             GLES20.glDeleteTextures(1, mTargetTexture, 0);
+            LogUtil.d(this, "EGL >> deleteFramebuffer glDeleteTextures texture=" + mTargetTexture[0] );
             mTargetTexture[0] = 0;
         }
 
+        disableWatermarkId();
+
         if (mFramebuffer[0] != 0) {
             GLES20.glDeleteFramebuffers(1, mFramebuffer, 0);
+            LogUtil.d(this, "EGL >> deleteFramebuffer glDeleteFramebuffers framebuffer=" + mFramebuffer[0] );
             mFramebuffer[0] = 0;
         }
     }
@@ -228,6 +234,7 @@ public class ProgramWatermark extends Program {
 
         final int[] textureObjectIds = new int[1];
         GLES20.glGenTextures(1, textureObjectIds, 0);
+        LogUtil.d(this, "EGL >> createWaterTexture1 glGenTextures texture=" + textureObjectIds[0] );
         if(textureObjectIds[0] == 0){
             Log.e("lq","Could not generate a new OpenGL texture object!");
             return;
@@ -261,6 +268,7 @@ public class ProgramWatermark extends Program {
         int[] textureIds = new int[1];
         // 创建纹理
         GLES20.glGenTextures(1,textureIds,0);
+        LogUtil.d(this, "EGL >> createWaterTexture2 glGenTextures texture=" + textureIds[0] );
         // 绑定纹理
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureIds[0]);
         //环绕（超出纹理坐标范围）  （s==x t==y GL_REPEAT 重复）
@@ -289,6 +297,10 @@ public class ProgramWatermark extends Program {
     }
 
     public void disableWatermarkId() {
-        waterTextureId = 0;
+        if(waterTextureId != 0){
+            GLES20.glDeleteTextures(1, new int[]{waterTextureId}, 0);
+            LogUtil.d(this, "EGL >> disableWatermarkId glDeleteTextures texture=" + waterTextureId );
+            waterTextureId = 0;
+        }
     }
 }

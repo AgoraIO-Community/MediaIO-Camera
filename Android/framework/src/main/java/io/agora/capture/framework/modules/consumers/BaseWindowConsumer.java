@@ -39,7 +39,6 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
 
     @Nullable
     private Bitmap watermarkBitmap;
-    private int watermarkIdThisTime;
     private float watermarkAlpha = 1.0f;
 
     BaseWindowConsumer(VideoModule videoModule) {
@@ -159,10 +158,10 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
         if (null != watermarkBitmap && !watermarkBitmap.isRecycled()) {
             ProgramWatermark desiredWatermarkProgram = context.getProgramWatermark();
             if (desiredWatermarkProgram != null) {
-                if (desiredWatermarkProgram.getWatermarkId() == 0 || watermarkIdThisTime == 0) {
+                if (desiredWatermarkProgram.getWatermarkId() == 0) {
                     GLES20.glEnable(GLES20.GL_BLEND);
                     GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
-                    context.getProgramWatermark().createWaterTexture2(watermarkBitmap);
+                    desiredWatermarkProgram.createWaterTexture2(watermarkBitmap);
                 }
             }
         } else {
@@ -196,7 +195,7 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
         // Watermark is enabled
         if (null != watermarkBitmap && !watermarkBitmap.isRecycled()) {
             // But program is null || Bitmap changed || Alpha changed <==> initialize a new ProgramWatermark
-            if (desiredWatermarkProgram == null || watermarkIdThisTime == 0) {
+            if (desiredWatermarkProgram == null) {
                 desiredWatermarkProgram = new ProgramWatermark(this.watermarkAlpha);
                 context.setProgramWatermark(desiredWatermarkProgram);
             }
@@ -205,8 +204,6 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
                 GLES20.glEnable(GLES20.GL_BLEND);
                 GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
                 desiredWatermarkProgram.createWaterTexture2(watermarkBitmap);
-
-                this.watermarkIdThisTime = desiredWatermarkProgram.getWatermarkId();
             }
         } else { // Watermark id disabled
             if (desiredWatermarkProgram != null) {
@@ -243,8 +240,6 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
     public void setWatermark(@Nullable Bitmap bitmap, float alpha) {
         // Recycle unused bitmap every time
         if (this.watermarkBitmap != null) this.watermarkBitmap.recycle();
-
-        this.watermarkIdThisTime = 0;
 
         if (null != bitmap && alpha != 0f) {
             android.graphics.Matrix mx = new android.graphics.Matrix();
