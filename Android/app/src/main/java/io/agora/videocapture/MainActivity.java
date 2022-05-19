@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.ImageDecoder;
+import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -40,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private SeekBar sliderWatermarkAlpha;
 
     private boolean mFinished;
+    private boolean mJumpNext;
     private boolean mIsMirrored = true;
 
     private final ActivityResultLauncher<Void> imageLauncher = registerForActivityResult(new PickImage(), resultUri -> {
@@ -112,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
         // needs to load resource files from local storage.
         // The loading may block the video rendering for a
         // little while.
-        mCameraVideoManager = new CameraVideoManager(this, null, true);
+        mCameraVideoManager = CameraVideoManager.create(this, null, Camera.CameraInfo.CAMERA_FACING_FRONT, true);
 
         mCameraVideoManager.setCameraStateListener(new VideoCapture.VideoCaptureStateListener() {
             @Override
@@ -172,6 +174,11 @@ public class MainActivity extends AppCompatActivity {
         imageLauncher.launch(null);
     }
 
+    public void jumpNext(View v){
+        mJumpNext = true;
+        startActivity(new Intent(MainActivity.this, NextActivity.class));
+    }
+
     private int toMirrorMode(boolean isMirrored) {
         return isMirrored ? Constant.MIRROR_MODE_ENABLED : Constant.MIRROR_MODE_DISABLED;
     }
@@ -227,32 +234,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
+    protected void onResume() {
+        super.onResume();
+        mJumpNext = false;
         if (mCameraVideoManager != null) {
             mCameraVideoManager.startCapture();
         }
     }
 
     @Override
-    public void onStop() {
-        super.onStop();
-        if (!mFinished && mCameraVideoManager != null) mCameraVideoManager.stopCapture();
-    }
-
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-        finish();
+    protected void onPause() {
+        super.onPause();
+        if (!mJumpNext && !mFinished && mCameraVideoManager != null) mCameraVideoManager.stopCapture();
     }
 
     @Override
     public void finish() {
         super.finish();
         mFinished = true;
-        if (mCameraVideoManager != null) {
-            mCameraVideoManager.release();
-        }
+        CameraVideoManager.release();
     }
 
 
