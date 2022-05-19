@@ -34,31 +34,46 @@ public class CameraVideoManager {
 
     private CameraVideoChannel mCameraChannel;
 
-    /**
-     * Initializes the camera video channel, loads all the
-     * resources needed during camera capturing.
-     * @param context Android context
-     * @param preprocessor usually is the implementation
-     *                     of a third-party beautification library
-     * @param facing must be one of Constant.CAMERA_FACING_FRONT
-     *               and Constant.CAMERA_FACING_BACK
-     * @see io.agora.capture.video.camera.Constant
-     */
-    public CameraVideoManager(Context context, IPreprocessor preprocessor, int facing) {
-        init(context, preprocessor, facing);
+    private volatile boolean available = true;
+    private Exception releaseException = null;
+
+    private volatile static CameraVideoManager sInstance;
+    private CameraVideoManager(){}
+
+    public static CameraVideoManager create(Context context){
+        return create(context, null, DEFAULT_FACING);
     }
 
-    public CameraVideoManager(Context context, IPreprocessor preprocessor) {
-        init(context, preprocessor, DEFAULT_FACING);
+    public static CameraVideoManager create(Context context, IPreprocessor preprocessor){
+        return create(context, preprocessor, DEFAULT_FACING);
     }
 
-    public CameraVideoManager(Context context, IPreprocessor preprocessor, boolean enableDebug) {
-        LogUtil.setDEBUG(enableDebug);
-        init(context, preprocessor, DEFAULT_FACING);
+    public static CameraVideoManager create(Context context, IPreprocessor preprocessor, int facing){
+        return create(context, preprocessor, facing, false);
     }
 
-    public CameraVideoManager(Context context) {
-        init(context, null, DEFAULT_FACING);
+    public static CameraVideoManager create(Context context, IPreprocessor preprocessor, int facing, boolean enableDebug){
+        if (sInstance == null) {
+            synchronized (CameraVideoManager.class) {
+                if (sInstance == null) {
+                    sInstance = new CameraVideoManager();
+                    LogUtil.setDEBUG(enableDebug);
+                    sInstance.init(context, preprocessor, facing);
+                } else {
+                    throw new IllegalStateException("The instance of cameraVideoManager has been created, please call getInstance() instead.");
+                }
+            }
+        } else {
+            throw new IllegalStateException("The instance of cameraVideoManager has been created, please call getInstance() instead.");
+        }
+        return sInstance;
+    }
+
+    public static CameraVideoManager getInstance(){
+        if(sInstance == null){
+            throw new IllegalStateException("The instance of cameraVideoManager has not been created yet, please call create(...) firstly.");
+        }
+        return sInstance;
     }
 
     /**
@@ -88,6 +103,7 @@ public class CameraVideoManager {
     }
 
     public void enablePreprocessor(boolean enabled) {
+        checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.enablePreProcess(enabled);
         }
@@ -99,6 +115,7 @@ public class CameraVideoManager {
      * @param textureView the local preview surface
      */
     public void setLocalPreview(TextureView textureView) {
+        checkAvailable();
         setLocalPreview(textureView, null);
     }
 
@@ -113,6 +130,7 @@ public class CameraVideoManager {
      * @param id identifier for the preview, nullable.
      */
     public void setLocalPreview(TextureView textureView, String id) {
+        checkAvailable();
         TextureViewConsumer consumer = new TextureViewConsumer();
         consumer.setId(id);
         textureView.setSurfaceTextureListener(consumer);
@@ -133,6 +151,7 @@ public class CameraVideoManager {
      * @param surfaceView the local preview surface
      */
     public void setLocalPreview(SurfaceView surfaceView) {
+        checkAvailable();
         setLocalPreview(surfaceView, null);
     }
 
@@ -147,6 +166,7 @@ public class CameraVideoManager {
      * @param id identifier for the preview, nullable.
      */
     public void setLocalPreview(SurfaceView surfaceView, String id) {
+        checkAvailable();
         SurfaceViewConsumer consumer =
                 new SurfaceViewConsumer(surfaceView);
         consumer.setId(id);
@@ -159,12 +179,14 @@ public class CameraVideoManager {
     }
 
     public void setFacing(int facing) {
+        checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.setFacing(facing);
         }
     }
 
     public void setPictureSize(int width, int height) {
+        checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.setPictureSize(width, height);
         }
@@ -179,12 +201,14 @@ public class CameraVideoManager {
      * @param consumer the consumer implementation
      */
     public void attachOffScreenConsumer(IVideoConsumer consumer) {
+        checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.connectConsumer(consumer, IVideoConsumer.TYPE_OFF_SCREEN);
         }
     }
 
     public void detachOffScreenConsumer(IVideoConsumer consumer) {
+        checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.disconnectConsumer(consumer);
         }
@@ -196,30 +220,35 @@ public class CameraVideoManager {
      * @param frameRate
      */
     public void setFrameRate(int frameRate) {
+        checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.setIdealFrameRate(frameRate);
         }
     }
 
     public void startCapture() {
+        checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.startCapture();
         }
     }
 
     public void stopCapture() {
+        checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.stopCapture();
         }
     }
 
     public void switchCamera() {
+        checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.switchCamera();
         }
     }
 
     public IPreprocessor getPreprocessor() {
+        checkAvailable();
         if (mCameraChannel != null) {
             return VideoModule.instance().getPreprocessor(CHANNEL_ID);
         }
@@ -228,18 +257,21 @@ public class CameraVideoManager {
     }
 
     public void setLocalPreviewMirror(int mode) {
+        checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.setOnScreenConsumerMirror(mode);
         }
     }
 
     public void setWaterMark(@Nullable Bitmap waterMarkBitmap) {
+        checkAvailable();
         setWaterMark(waterMarkBitmap, 1f);
     }
 
 
     @Nullable
     public Bitmap getWaterMark() {
+        checkAvailable();
         if (mCameraChannel != null) {
             return mCameraChannel.getWatermarkBitmap();
         }
@@ -250,18 +282,21 @@ public class CameraVideoManager {
      * TODO Optimize code to better support change alpha channel dynamically
      */
     private void setWaterMark(@Nullable Bitmap waterMarkBitmap, float waterMarkAlpha) {
+        checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.setWatermark(waterMarkBitmap, waterMarkAlpha);
         }
     }
 
     private void setWaterMarkAlpha(float waterMarkAlpha) {
+        checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.setWatermarkAlpha(waterMarkAlpha);
         }
     }
 
     private float getWatermarkAlpha(){
+        checkAvailable();
         if (mCameraChannel != null) {
             return mCameraChannel.getWatermarkAlpha();
         }
@@ -269,25 +304,41 @@ public class CameraVideoManager {
     }
 
     public void setCameraStateListener(VideoCapture.VideoCaptureStateListener listener) {
+        checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.setCameraStateListener(listener);
         }
     }
 
     public void updatePreviewOrientation() {
+        checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.updatePreviewOrientation();
         }
     }
 
-    public void release(){
-        stopCapture();
-        VideoModule.instance().stopChannel(CHANNEL_ID);
+    public void checkAvailable(){
+        if(!available){
+            throw new IllegalStateException("The instance has been released, please create another one.", releaseException);
+        }
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        release();
+    public static void release(){
+        if(sInstance != null){
+            synchronized (CameraVideoManager.class){
+                if(sInstance != null){
+                    sInstance.stopCapture();
+                    sInstance.available = false;
+                    VideoModule.instance().stopChannel(CHANNEL_ID);
+                    try {
+                        throw new RuntimeException("CameraVideoManager release");
+                    } catch (Exception e) {
+                        sInstance.releaseException = e;
+                    }
+                    sInstance = null;
+                }
+            }
+        }
     }
+
 }

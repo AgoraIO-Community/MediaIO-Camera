@@ -40,6 +40,16 @@
         android:padding="12dp"
         android:src="@drawable/ic_watermark" />
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/btn_watermark"
+        android:layout_alignEnd="@id/btn_watermark"
+        android:onClick="jumpNext"
+        android:text="Jump Next"/>
+
+
+
     <SeekBar
         android:id="@+id/slider_watermark_alpha"
         android:layout_width="match_parent"
