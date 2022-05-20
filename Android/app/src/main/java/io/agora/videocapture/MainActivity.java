@@ -15,8 +15,9 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.view.TextureView;
 import android.view.View;
-import android.widget.RelativeLayout;
+import android.widget.FrameLayout;
 import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -27,6 +28,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import io.agora.capture.framework.util.MatrixOperator;
 import io.agora.capture.video.camera.CameraVideoManager;
 import io.agora.capture.video.camera.Constant;
 import io.agora.capture.video.camera.VideoCapture;
@@ -36,9 +38,7 @@ public class MainActivity extends AppCompatActivity {
 
     private CameraVideoManager mCameraVideoManager;
     private TextureView mVideoSurface;
-    private RelativeLayout mVideoLayout;
-
-    private SeekBar sliderWatermarkAlpha;
+    private FrameLayout mVideoLayout;
 
     private boolean mFinished;
     private boolean mJumpNext;
@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
         if (granted) imageLauncher.launch(null);
         else Toast.makeText(MainActivity.this, "读取权限被拒绝", Toast.LENGTH_SHORT).show();
     });
+    private MatrixOperator watermarkMatrixOperator;
 
 
     @Override
@@ -72,27 +73,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initView() {
-//        sliderWatermarkAlpha = findViewById(R.id.slider_watermark_alpha);
-//        sliderWatermarkAlpha.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-//            @Override
-//            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-//                if (fromUser)
-//                    mCameraVideoManager.setWaterMarkAlpha(progress / 100f);
-//            }
-//
-//            @Override
-//            public void onStartTrackingTouch(SeekBar seekBar) {
-//
-//            }
-//
-//            @Override
-//            public void onStopTrackingTouch(SeekBar seekBar) {
-//
-//            }
-//        });
         // 长按清除水印
         findViewById(R.id.btn_watermark).setOnLongClickListener(v -> {
-            mCameraVideoManager.setWaterMark(null);
+            clearWatermark();
             return true;
         });
     }
@@ -160,6 +143,9 @@ public class MainActivity extends AppCompatActivity {
     public void onCameraChange(View view) {
         if (mCameraVideoManager != null) {
             mCameraVideoManager.switchCamera();
+            if (watermarkMatrixOperator != null) {
+                watermarkMatrixOperator.setMirror(!watermarkMatrixOperator.isMirror());
+            }
         }
     }
 
@@ -200,23 +186,147 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (watermarkBitmap != null) {
-            mCameraVideoManager.setWaterMark(watermarkBitmap);
+            watermarkMatrixOperator = mCameraVideoManager.setWaterMark(watermarkBitmap, MatrixOperator.ScaleType.CenterCrop);
+            mCameraVideoManager.setWaterMarkAlpha(0.5f);
+
+            watermarkMatrixOperator.setMirror(true);
+            watermarkMatrixOperator.setScaleRadio(0.5f);
+            watermarkMatrixOperator.translateX(-0.6f);
+            watermarkMatrixOperator.translateY(-0.6f);
+            updateSeekbar(true);
         }
-//        updateSeekbar(watermarkBitmap);
+
     }
 
     private void clearWatermark(){
         mCameraVideoManager.setWaterMark(null);
+        watermarkMatrixOperator = null;
         // updateUI
-//        updateSeekbar(null);
+        updateSeekbar(false);
     }
 
-//    private void updateSeekbar(@Nullable Bitmap watermarkBitmap){
-//        sliderWatermarkAlpha.setVisibility(watermarkBitmap == null ? View.GONE : View.VISIBLE);
-//        if (watermarkBitmap != null) {
-//            sliderWatermarkAlpha.setProgress(100);
-//        }
-//    }
+    private void updateSeekbar(boolean visible){
+        View layout = findViewById(R.id.watermark_layout);
+        if(!visible){
+            layout.setVisibility(View.GONE);
+            return;
+        }
+        layout.setVisibility(View.VISIBLE);
+
+        // alpha
+        SeekBar sliderWatermarkAlpha = findViewById(R.id.slider_watermark_alpha);
+        TextView sliderWatermarkAlphaValue = findViewById(R.id.slider_watermark_alpha_value);
+        sliderWatermarkAlpha.setProgress((int) (mCameraVideoManager.getWatermarkAlpha() * 100));
+        sliderWatermarkAlphaValue.setText(mCameraVideoManager.getWatermarkAlpha() + "");
+        sliderWatermarkAlpha.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    mCameraVideoManager.setWaterMarkAlpha(progress / 100f);
+                    sliderWatermarkAlphaValue.setText(progress / 100f + "");
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        // scale
+        SeekBar sliderWatermarkScale = findViewById(R.id.slider_watermark_scale);
+        TextView sliderWatermarkScaleValue = findViewById(R.id.slider_watermark_scale_value);
+        sliderWatermarkScale.setProgress((int) (watermarkMatrixOperator.getScaleRadio() * 100));
+        sliderWatermarkScaleValue.setText("" + watermarkMatrixOperator.getScaleRadio());
+        sliderWatermarkScale.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    watermarkMatrixOperator.setScaleRadio(progress / 100f);
+                    sliderWatermarkScaleValue.setText("" + progress / 100f);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        // translate x
+        SeekBar sliderWatermarkTranX = findViewById(R.id.slider_watermark_tranx);
+        TextView sliderWatermarkTranXValue = findViewById(R.id.slider_watermark_tranx_value);
+        sliderWatermarkTranX.setProgress((int)(watermarkMatrixOperator.getTranslateX() > 0 ? 50f + watermarkMatrixOperator.getTranslateX() * 50f : 50f - watermarkMatrixOperator.getTranslateX() * 50f));
+        sliderWatermarkTranXValue.setText(watermarkMatrixOperator.getTranslateX() + "");
+        sliderWatermarkTranX.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    float translate = 0f;
+                    if (progress > 50) {
+                        translate = (progress - 50) / 50f;
+                        watermarkMatrixOperator.translateX(translate);
+                    }else{
+                        translate = progress / 50f - 1.f;
+                        watermarkMatrixOperator.translateX(translate);
+                    }
+                    sliderWatermarkTranXValue.setText(translate + "");
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        // translate y
+        SeekBar sliderWatermarkTranY = findViewById(R.id.slider_watermark_trany);
+        TextView sliderWatermarkTranYValue = findViewById(R.id.slider_watermark_trany_value);
+        sliderWatermarkTranY.setProgress((int) (watermarkMatrixOperator.getTranslateY() > 0 ?  50f + watermarkMatrixOperator.getTranslateY() * 50f : 50f - watermarkMatrixOperator.getTranslateY() * 50f));
+        sliderWatermarkTranYValue.setText(watermarkMatrixOperator.getTranslateY() + "");
+        sliderWatermarkTranY.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    float translate = 0f;
+                    if (progress > 50) {
+                        translate = (progress - 50) / 50f;
+                        watermarkMatrixOperator.translateY(translate);
+                    }else{
+                        translate = progress / 50f - 1.f;
+                        watermarkMatrixOperator.translateY(translate);
+                    }
+                    sliderWatermarkTranYValue.setText(translate + "");
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+    }
 
     private void showRequestStoragePermissionDialog() {
         new AlertDialog.Builder(this).setMessage("由于安卓设备的多样性，您的设备要求即使使用系统自带选图功能，仍需要对APP授权才能访问此图片，是否继续？")

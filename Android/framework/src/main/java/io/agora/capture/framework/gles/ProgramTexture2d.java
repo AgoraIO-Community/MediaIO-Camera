@@ -41,14 +41,16 @@ public class ProgramTexture2d extends Program {
             "precision mediump float;\n" +
                     "varying vec2 vTextureCoord;\n" +
                     "uniform sampler2D sTexture;\n" +
+                    "uniform float sAlpha;\n" +
                     "void main() {\n" +
-                    "    gl_FragColor = vec4(texture2D(sTexture, vTextureCoord).rgb, 1.0);\n" +
+                    "    gl_FragColor = vec4(texture2D(sTexture, vTextureCoord).rgb, sAlpha);\n" +
                     "}\n";
 
     private int muMVPMatrixLoc;
     private int muTexMatrixLoc;
     private int maPositionLoc;
     private int maTextureCoordLoc;
+    private int muAlphaLoc;
 
     public ProgramTexture2d() {
         super(VERTEX_SHADER, FRAGMENT_SHADER_2D);
@@ -69,10 +71,16 @@ public class ProgramTexture2d extends Program {
         GlUtil.checkLocation(muMVPMatrixLoc, "uMVPMatrix");
         muTexMatrixLoc = GLES20.glGetUniformLocation(mProgramHandle, "uTexMatrix");
         GlUtil.checkLocation(muTexMatrixLoc, "uTexMatrix");
+        muAlphaLoc = GLES20.glGetUniformLocation(mProgramHandle, "sAlpha");
+        GlUtil.checkLocation(muAlphaLoc, "sAlpha");
     }
 
     @Override
     public void drawFrame(int textureId, float[] texMatrix, float[] mvpMatrix) {
+        drawFrame(textureId, texMatrix, mvpMatrix, 1.0f);
+    }
+
+    public void drawFrame(int textureId, float[] texMatrix, float[] mvpMatrix, float alpha) {
         GlUtil.checkGlError("draw start");
 
         // Select the program.
@@ -82,6 +90,9 @@ public class ProgramTexture2d extends Program {
         // Set the texture.
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId);
+
+        GLES20.glUniform1f(muAlphaLoc, alpha);
+        GlUtil.checkGlError("glUniform1f");
 
         // Copy the model / view / projection matrix over.
         GLES20.glUniformMatrix4fv(muMVPMatrixLoc, 1, false, mvpMatrix, 0);

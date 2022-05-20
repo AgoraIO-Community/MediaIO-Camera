@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/video_layout"
+    xmlns:tools="http://schemas.android.com/tools"
+
     android:layout_width="match_parent"
     android:layout_height="match_parent">
+
+    <FrameLayout
+        android:id="@+id/video_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
     <ImageButton
         android:id="@+id/switch_camera"
@@ -49,15 +55,136 @@
         android:text="Jump Next"/>
 
 
-
-    <SeekBar
-        android:id="@+id/slider_watermark_alpha"
+    <LinearLayout
+        android:id="@+id/watermark_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/btn_watermark"
-        android:layout_marginStart="100dp"
-        android:elevation="4dp"
-        android:max="100"
-        android:progress="100"
-        android:visibility="gone" />
+        android:layout_alignParentBottom="true"
+        android:visibility="gone"
+        tools:visibility="visible"
+        android:background="#88eeeeee"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Alpha"/>
+
+            <SeekBar
+                android:id="@+id/slider_watermark_alpha"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:elevation="4dp"
+                android:max="100"
+                android:progress="100"/>
+
+            <TextView
+                android:id="@+id/slider_watermark_alpha_value"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:text="Value"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Scale"/>
+
+            <SeekBar
+                android:id="@+id/slider_watermark_scale"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:elevation="4dp"
+                android:max="100"
+                android:progress="100"/>
+
+            <TextView
+                android:id="@+id/slider_watermark_scale_value"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:text="Value"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TranX"/>
+
+            <SeekBar
+                android:id="@+id/slider_watermark_tranx"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:elevation="4dp"
+                android:max="100"
+                android:progress="100"/>
+
+            <TextView
+                android:id="@+id/slider_watermark_tranx_value"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:text="Value"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TranY"/>
+
+            <SeekBar
+                android:id="@+id/slider_watermark_trany"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:elevation="4dp"
+                android:max="100"
+                android:progress="100"/>
+
+            <TextView
+                android:id="@+id/slider_watermark_trany_value"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:text="Value"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
 </RelativeLayout>
