@@ -15,13 +15,14 @@ import java.util.List;
 
 import io.agora.capture.framework.gles.ProgramTexture2d;
 import io.agora.capture.framework.gles.ProgramTextureOES;
-import io.agora.capture.framework.gles.ProgramWatermark;
 import io.agora.capture.framework.gles.core.EglCore;
 import io.agora.capture.framework.modules.consumers.IVideoConsumer;
 import io.agora.capture.framework.modules.processors.IPreprocessor;
 import io.agora.capture.framework.modules.processors.RotateProcessor;
+import io.agora.capture.framework.modules.processors.WatermarkProcessor;
 import io.agora.capture.framework.modules.producers.IVideoProducer;
 import io.agora.capture.framework.util.LogUtil;
+import io.agora.capture.framework.util.MatrixOperator;
 import io.agora.capture.video.camera.VideoCaptureFrame;
 
 public class VideoChannel extends HandlerThread {
@@ -34,14 +35,14 @@ public class VideoChannel extends HandlerThread {
     private List<IVideoConsumer> mOnScreenConsumers = new ArrayList<>();
     private List<IVideoConsumer> mOffScreenConsumers = new ArrayList<>();
     private int mOnScreenConsumerMirrorMode;
-    private Bitmap watermarkBitmap;
-    private float watermarkAlpha;
     private IPreprocessor mPreprocessor;
 
     // Used to rotate the image to normal direction according
     // to texture transformation matrix and possibly surface
     // rotation if the surface is not in natural rotation.
     private RotateProcessor mRotateProcessor;
+
+    private WatermarkProcessor mWatermarkProcessor;
 
     private Handler mHandler;
 
@@ -71,6 +72,7 @@ public class VideoChannel extends HandlerThread {
         initOpenGL();
         initPreprocessor();
         initRotateProcessor();
+        initWatermarkProcessor();
         onChannelContextCreated();
     }
 
@@ -84,7 +86,6 @@ public class VideoChannel extends HandlerThread {
         mContext.setEglCore(eglCore);
         mDummyEglSurface = eglCore.createOffscreenSurface(1, 1);
         eglCore.makeCurrent(mDummyEglSurface);
-        mContext.setProgramWatermark(new ProgramWatermark());
         mContext.setProgram2D(new ProgramTexture2d());
         mContext.setProgramOES(new ProgramTextureOES());
     }
@@ -96,15 +97,29 @@ public class VideoChannel extends HandlerThread {
     }
 
     private void initRotateProcessor() {
-        mRotateProcessor = new RotateProcessor();
-        mRotateProcessor.init(mContext);
+//        mRotateProcessor = new RotateProcessor();
+//        mRotateProcessor.init(mContext);
+    }
+
+    private void initWatermarkProcessor() {
+        if(mWatermarkProcessor == null){
+            mWatermarkProcessor = new WatermarkProcessor();
+        }
     }
 
     private void release() {
         LogUtil.i(TAG, "channel opengl release");
         releasePreprocessor();
         releaseRotateProcessor();
+        releaseWatermarkProcessor();
         releaseOpenGL();
+    }
+
+    private void releaseWatermarkProcessor() {
+        if (mWatermarkProcessor != null) {
+            mWatermarkProcessor.cleanWatermark();
+            mPreprocessor = null;
+        }
     }
 
     private void releasePreprocessor() {
@@ -122,10 +137,6 @@ public class VideoChannel extends HandlerThread {
     }
 
     private void releaseOpenGL() {
-        ProgramWatermark programWatermark = mContext.getProgramWatermark();
-        if(programWatermark != null){
-            programWatermark.destroyProgram();
-        }
         mContext.getProgram2D().release();
         mContext.getProgramOES().release();
         mContext.getEglCore().releaseSurface(mDummyEglSurface);
@@ -226,7 +237,6 @@ public class VideoChannel extends HandlerThread {
                         consumer.getDrawingTarget(), consumer.getId());
                 mOnScreenConsumers.add(consumer);
                 consumer.setMirrorMode(mOnScreenConsumerMirrorMode);
-                consumer.setWatermark(watermarkBitmap, watermarkAlpha);
             } else if (type == IVideoConsumer.TYPE_OFF_SCREEN) {
                 removeSameConsumers(mOffScreenConsumers,
                         consumer.getDrawingTarget(), consumer.getId());
@@ -269,35 +279,36 @@ public class VideoChannel extends HandlerThread {
         });
     }
 
-    public void setWatermark(@Nullable Bitmap watermarkBitmap, float watermarkAlpha) {
-        if (this.watermarkBitmap != null) this.watermarkBitmap.recycle();
-        this.watermarkBitmap = watermarkBitmap;
-        this.watermarkAlpha = watermarkAlpha;
-
-        mHandler.post(() -> {
-            for (IVideoConsumer consumer : mOnScreenConsumers) {
-                consumer.setWatermark(this.watermarkBitmap, watermarkAlpha);
+    public MatrixOperator setWatermark(@Nullable Bitmap watermarkBitmap, @MatrixOperator.ScaleType int scaleType) {
+        if (mWatermarkProcessor != null) {
+            if(watermarkBitmap != null){
+                return mWatermarkProcessor.setWatermarkBitmap(watermarkBitmap, scaleType);
+            }else{
+                mHandler.post(() -> mWatermarkProcessor.cleanWatermark());
             }
-        });
+        }
+        return null;
     }
 
     @Nullable
     public Bitmap getWatermarkBitmap() {
-        return watermarkBitmap;
+        if(mWatermarkProcessor != null){
+            return mWatermarkProcessor.getWatermarkBitmap();
+        }
+        return null;
     }
 
     public void setWatermarkAlpha(float watermarkAlpha) {
-        this.watermarkAlpha = watermarkAlpha;
-
-        mHandler.post(() -> {
-            for (IVideoConsumer consumer : mOnScreenConsumers) {
-                consumer.setWatermark(this.watermarkBitmap, watermarkAlpha);
-            }
-        });
+        if(mWatermarkProcessor != null){
+            mWatermarkProcessor.setWatermarkAlpha(watermarkAlpha);
+        }
     }
 
     public float getWatermarkAlpha() {
-        return watermarkAlpha;
+        if(mWatermarkProcessor != null){
+            return mWatermarkProcessor.getWatermarkAlpha();
+        }
+        return 1.0f;
     }
 
     public void disconnectConsumer(IVideoConsumer consumer) {
@@ -338,6 +349,14 @@ public class VideoChannel extends HandlerThread {
             makeDummySurfaceCurrent();
         }
 
+        if (mWatermarkProcessor != null) {
+            // Rotate the image to the final state.
+            // Further rotation procedure will not be
+            // necessary for all consumers.
+            frame = mWatermarkProcessor.process(frame);
+            makeDummySurfaceCurrent();
+        }
+
         if (mRotateProcessor != null) {
             // Rotate the image to the final state.
             // Further rotation procedure will not be
@@ -354,7 +373,7 @@ public class VideoChannel extends HandlerThread {
             }
         }
 
-        if (mOnScreenConsumers.size() > 0 || mOffScreenMode) {
+        if (mOffScreenConsumers.size() > 0 || mOffScreenMode) {
             // If there is no on-screen consumers connected,
             // the off-screen consumers cannot actually be
             // called, unless the channel runs in off-screen
@@ -393,8 +412,6 @@ public class VideoChannel extends HandlerThread {
         private EglCore mEglCore;
         private ProgramTexture2d mProgram2D;
         private ProgramTextureOES mProgramOES;
-        @Nullable
-        private ProgramWatermark mProgramWatermark;
 
         public Context getContext() {
             return mContext;
@@ -414,15 +431,6 @@ public class VideoChannel extends HandlerThread {
 
         public EGLContext getEglContext() {
             return getEglCore().getEGLContext();
-        }
-
-        @Nullable
-        public ProgramWatermark getProgramWatermark() {
-            return mProgramWatermark;
-        }
-
-        public void setProgramWatermark(@Nullable ProgramWatermark mFullFrameRectTexture2D) {
-            this.mProgramWatermark = mFullFrameRectTexture2D;
         }
 
         public ProgramTexture2d getProgram2D() {

@@ -13,6 +13,7 @@ import io.agora.capture.framework.modules.consumers.SurfaceViewConsumer;
 import io.agora.capture.framework.modules.consumers.TextureViewConsumer;
 import io.agora.capture.framework.modules.processors.IPreprocessor;
 import io.agora.capture.framework.util.LogUtil;
+import io.agora.capture.framework.util.MatrixOperator;
 
 /**
  * VideoManager is designed as the up-level encapsulation of
@@ -263,9 +264,9 @@ public class CameraVideoManager {
         }
     }
 
-    public void setWaterMark(@Nullable Bitmap waterMarkBitmap) {
+    public MatrixOperator setWaterMark(@Nullable Bitmap waterMarkBitmap) {
         checkAvailable();
-        setWaterMark(waterMarkBitmap, 1f);
+        return setWaterMark(waterMarkBitmap, MatrixOperator.ScaleType.CenterCrop);
     }
 
 
@@ -278,24 +279,22 @@ public class CameraVideoManager {
         return null;
     }
 
-    /**
-     * TODO Optimize code to better support change alpha channel dynamically
-     */
-    private void setWaterMark(@Nullable Bitmap waterMarkBitmap, float waterMarkAlpha) {
+    public MatrixOperator setWaterMark(@Nullable Bitmap waterMarkBitmap, @MatrixOperator.ScaleType int scaleType) {
         checkAvailable();
         if (mCameraChannel != null) {
-            mCameraChannel.setWatermark(waterMarkBitmap, waterMarkAlpha);
+            return mCameraChannel.setWatermark(waterMarkBitmap, scaleType);
         }
+        return null;
     }
 
-    private void setWaterMarkAlpha(float waterMarkAlpha) {
+    public void setWaterMarkAlpha(float waterMarkAlpha) {
         checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.setWatermarkAlpha(waterMarkAlpha);
         }
     }
 
-    private float getWatermarkAlpha(){
+    public float getWatermarkAlpha(){
         checkAvailable();
         if (mCameraChannel != null) {
             return mCameraChannel.getWatermarkAlpha();

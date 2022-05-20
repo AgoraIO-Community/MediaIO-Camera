@@ -1,10 +1,5 @@
 package io.agora.capture.framework.modules.consumers;
 
-import android.graphics.Bitmap;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
 import io.agora.capture.framework.modules.channels.VideoChannel;
 import io.agora.capture.video.camera.VideoCaptureFrame;
 
@@ -18,7 +13,6 @@ public interface IVideoConsumer {
 
     void setMirrorMode(int mode);
 
-    void setWatermark(@Nullable Bitmap bitmap, float alpha);
     /**
      * Give a chance for subclasses to return a drawing target object.
      * This drawing target can only be either a Surface or a
