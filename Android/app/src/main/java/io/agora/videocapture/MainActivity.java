@@ -266,7 +266,7 @@ public class MainActivity extends AppCompatActivity {
         // translate x
         SeekBar sliderWatermarkTranX = findViewById(R.id.slider_watermark_tranx);
         TextView sliderWatermarkTranXValue = findViewById(R.id.slider_watermark_tranx_value);
-        sliderWatermarkTranX.setProgress((int)(watermarkMatrixOperator.getTranslateX() > 0 ? 50f + watermarkMatrixOperator.getTranslateX() * 50f : 50f - watermarkMatrixOperator.getTranslateX() * 50f));
+        sliderWatermarkTranX.setProgress((int)(50f + watermarkMatrixOperator.getTranslateX() * 50f));
         sliderWatermarkTranXValue.setText(watermarkMatrixOperator.getTranslateX() + "");
         sliderWatermarkTranX.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -298,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
         // translate y
         SeekBar sliderWatermarkTranY = findViewById(R.id.slider_watermark_trany);
         TextView sliderWatermarkTranYValue = findViewById(R.id.slider_watermark_trany_value);
-        sliderWatermarkTranY.setProgress((int) (watermarkMatrixOperator.getTranslateY() > 0 ?  50f + watermarkMatrixOperator.getTranslateY() * 50f : 50f - watermarkMatrixOperator.getTranslateY() * 50f));
+        sliderWatermarkTranY.setProgress((int) (50f + watermarkMatrixOperator.getTranslateY() * 50f));
         sliderWatermarkTranYValue.setText(watermarkMatrixOperator.getTranslateY() + "");
         sliderWatermarkTranY.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
