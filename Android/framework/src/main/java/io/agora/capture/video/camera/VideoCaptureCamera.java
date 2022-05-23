@@ -212,6 +212,17 @@ public class VideoCaptureCamera
         parameters.setPreviewSize(matchedWidth, matchedHeight);
         parameters.setPreviewFpsRange(chosenFpsRange[0], chosenFpsRange[1]);
         parameters.setPreviewFormat(pCaptureFormat.getPixelFormat());
+
+        if (parameters.isVideoStabilizationSupported()) {
+            parameters.setVideoStabilization(true);
+        }
+
+        // set auto focus mode
+        final List<String> focusModes = parameters.getSupportedFocusModes();
+        if (focusModes.contains(android.hardware.Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+            parameters.setFocusMode(android.hardware.Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+        }
+
         try {
             mCamera.setParameters(parameters);
         } catch (RuntimeException ex) {
