@@ -97,6 +97,7 @@ public class MatrixOperator {
 
     public void setMirror(boolean mirror) {
         this.mirror = mirror;
+        updateTransform();
     }
 
     public void reset() {
