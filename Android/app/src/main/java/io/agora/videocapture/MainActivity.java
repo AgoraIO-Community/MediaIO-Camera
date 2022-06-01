@@ -5,15 +5,17 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.ImageDecoder;
 import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.view.TextureView;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.SeekBar;
@@ -37,12 +39,13 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
 
     private CameraVideoManager mCameraVideoManager;
-    private TextureView mVideoSurface;
+    private View mVideoSurface;
     private FrameLayout mVideoLayout;
+    private FrameLayout mSmallVideoLayout;
 
     private boolean mFinished;
     private boolean mJumpNext;
-    private boolean mIsMirrored = true;
+    private boolean mIsMirrored = false;
 
     private final ActivityResultLauncher<Void> imageLauncher = registerForActivityResult(new PickImage(), resultUri -> {
         if (resultUri != null) {
@@ -125,27 +128,67 @@ public class MainActivity extends AppCompatActivity {
         mCameraVideoManager.setPictureSize(640, 480);
         mCameraVideoManager.setFrameRate(24);
         mCameraVideoManager.setFacing(Constant.CAMERA_FACING_FRONT);
-        mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
+         mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
 
         // The preview surface is actually considered as
         // an on-screen consumer under the hood.
-        mVideoSurface = new TextureView(this);
+        mVideoSurface = new SurfaceView(this);
         mVideoLayout = findViewById(R.id.video_layout);
         mVideoLayout.addView(mVideoSurface);
-        mCameraVideoManager.setLocalPreview(mVideoSurface, "Surface1");
+        mCameraVideoManager.setLocalPreview((SurfaceView)mVideoSurface, "Surface1");
+
+        mSmallVideoLayout = findViewById(R.id.small_video_layout);
+        mSmallVideoLayout.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                Object tag = v.getTag();
+                if(tag == null){
+                    CountDownTimer countDownTimer = new CountDownTimer(2000 * 200, 200) {
+                        @Override
+                        public void onTick(long millisUntilFinished) {
+                            switchVideoLayout();
+                        }
+
+                        @Override
+                        public void onFinish() {
+
+                        }
+                    };
+                    countDownTimer.start();
+                    v.setTag(countDownTimer);
+                }else{
+                    CountDownTimer countDownTimer = (CountDownTimer) tag;
+                    countDownTimer.cancel();
+                    v.setTag(null);
+                }
+                return true;
+            }
+        });
+        mSmallVideoLayout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                switchVideoLayout();
+            }
+        });
 
         // Can attach other consumers here,
         // For example, rtc consumer or rtmp module
-
         mCameraVideoManager.startCapture();
+    }
+
+    private void switchVideoLayout() {
+        if(mVideoLayout.getChildCount() > 0){
+            mVideoLayout.removeAllViews();
+            mSmallVideoLayout.addView(mVideoSurface);
+        }else{
+            mSmallVideoLayout.removeAllViews();
+            mVideoLayout.addView(mVideoSurface);
+        }
     }
 
     public void onCameraChange(View view) {
         if (mCameraVideoManager != null) {
             mCameraVideoManager.switchCamera();
-            if (watermarkMatrixOperator != null) {
-                watermarkMatrixOperator.setMirror(!watermarkMatrixOperator.isMirror());
-            }
         }
     }
 
@@ -188,12 +231,19 @@ public class MainActivity extends AppCompatActivity {
         if (watermarkBitmap != null) {
             watermarkMatrixOperator = mCameraVideoManager.setWaterMark(watermarkBitmap, MatrixOperator.ScaleType.CenterCrop);
             mCameraVideoManager.setWaterMarkAlpha(0.5f);
-
-            watermarkMatrixOperator.setMirror(true);
             watermarkMatrixOperator.setScaleRadio(0.5f);
             watermarkMatrixOperator.translateX(-0.6f);
             watermarkMatrixOperator.translateY(-0.6f);
             updateSeekbar(true);
+        }
+
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if(mCameraVideoManager != null){
+            mCameraVideoManager.updatePreviewOrientation();
         }
 
     }

@@ -116,8 +116,11 @@ public class CameraVideoManager {
      * @param textureView the local preview surface
      */
     public void setLocalPreview(TextureView textureView) {
-        checkAvailable();
         setLocalPreview(textureView, null);
+    }
+
+    public void setLocalPreview(TextureView textureView, String id) {
+        setLocalPreview(textureView, MatrixOperator.ScaleType.CenterCrop, id);
     }
 
     /**
@@ -130,9 +133,9 @@ public class CameraVideoManager {
      * @param textureView the local preview surface
      * @param id identifier for the preview, nullable.
      */
-    public void setLocalPreview(TextureView textureView, String id) {
+    public void setLocalPreview(TextureView textureView, @MatrixOperator.ScaleType int scaleType, String id) {
         checkAvailable();
-        TextureViewConsumer consumer = new TextureViewConsumer();
+        TextureViewConsumer consumer = new TextureViewConsumer(scaleType);
         consumer.setId(id);
         textureView.setSurfaceTextureListener(consumer);
 
@@ -152,8 +155,11 @@ public class CameraVideoManager {
      * @param surfaceView the local preview surface
      */
     public void setLocalPreview(SurfaceView surfaceView) {
-        checkAvailable();
         setLocalPreview(surfaceView, null);
+    }
+
+    public void setLocalPreview(SurfaceView surfaceView, String id){
+        setLocalPreview(surfaceView, MatrixOperator.ScaleType.CenterCrop, id);
     }
 
     /**
@@ -166,10 +172,10 @@ public class CameraVideoManager {
      * @param surfaceView the local preview surface
      * @param id identifier for the preview, nullable.
      */
-    public void setLocalPreview(SurfaceView surfaceView, String id) {
+    public void setLocalPreview(SurfaceView surfaceView, @MatrixOperator.ScaleType int scaleType, String id) {
         checkAvailable();
         SurfaceViewConsumer consumer =
-                new SurfaceViewConsumer(surfaceView);
+                new SurfaceViewConsumer(surfaceView, scaleType);
         consumer.setId(id);
         surfaceView.getHolder().addCallback(consumer);
 
@@ -316,7 +322,7 @@ public class CameraVideoManager {
         }
     }
 
-    public void checkAvailable(){
+    private void checkAvailable(){
         if(!available){
             throw new IllegalStateException("The instance has been released, please create another one.", releaseException);
         }

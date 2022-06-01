@@ -139,7 +139,6 @@ public class VideoCaptureCamera
 
         try {
             mCamera = Camera.open(mCameraId);
-            mCamera.setDisplayOrientation(90);
         } catch (RuntimeException ex) {
             LogUtil.e(TAG, "allocate: Camera.open: " + ex);
             mErrorCallback.onError(ERROR_UNKNOWN, null);
@@ -152,14 +151,14 @@ public class VideoCaptureCamera
             mCamera = null;
             return false;
         }
-        pCameraNativeOrientation = cameraInfo.orientation;
-        // For Camera API, the readings of back-facing camera need to be inverted.
-        pInvertDeviceOrientationReadings =
-                (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT);
 
-//        // Making the texture transformation behaves
-//        // as the same as Camera2 api.
-//        mCamera.setDisplayOrientation(getDisplayOrientation(cameraInfo));
+        // Making the texture transformation behaves
+        // as the same as Camera2 api.
+        int displayOrientation = getDisplayOrientation(cameraInfo);
+        mCamera.setDisplayOrientation(displayOrientation);
+        pCameraNativeOrientation = displayOrientation;
+        pInvertDeviceOrientationReadings = false;
+
         Camera.Parameters parameters = getCameraParameters(mCamera);
         if (parameters == null) {
             mCamera = null;
@@ -352,7 +351,9 @@ public class VideoCaptureCamera
 
             return;
         }
-//        mCamera.setDisplayOrientation(getDisplayOrientation(cameraInfo));
+        int displayOrientation = getDisplayOrientation(cameraInfo);
+        mCamera.setDisplayOrientation(displayOrientation);
+        pCameraNativeOrientation = displayOrientation;
     }
 
     private int getDisplayOrientation(Camera.CameraInfo cameraInfo) {

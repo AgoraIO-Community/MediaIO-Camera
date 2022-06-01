@@ -12,10 +12,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
+        android:hardwareAccelerated="true"
         tools:ignore="AllowBackup">
         <activity
             android:name=".LaunchActivity"
-            android:exported="true">
+            android:exported="true"
+            android:configChanges="orientation|screenLayout|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -23,8 +25,10 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".MainActivity"/>
-        <activity android:name=".NextActivity"/>
+        <activity android:name=".MainActivity"
+            android:configChanges="orientation|screenLayout|screenSize"/>
+        <activity android:name=".NextActivity"
+            android:configChanges="orientation|screenLayout|screenSize"/>
 
     </application>
 

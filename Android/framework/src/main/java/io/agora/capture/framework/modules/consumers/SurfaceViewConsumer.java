@@ -7,6 +7,7 @@ import android.view.SurfaceView;
 
 import io.agora.capture.framework.modules.channels.VideoChannel;
 import io.agora.capture.framework.util.LogUtil;
+import io.agora.capture.framework.util.MatrixOperator;
 import io.agora.capture.video.camera.VideoCaptureFrame;
 import io.agora.capture.video.camera.VideoModule;
 
@@ -17,8 +18,8 @@ public class SurfaceViewConsumer extends BaseWindowConsumer implements SurfaceHo
     private int mWidth;
     private int mHeight;
 
-    public SurfaceViewConsumer(SurfaceView surfaceView) {
-        super(VideoModule.instance());
+    public SurfaceViewConsumer(SurfaceView surfaceView, @MatrixOperator.ScaleType int scaleType) {
+        super(VideoModule.instance(), false, scaleType);
         mSurfaceView = surfaceView;
     }
 
@@ -75,10 +76,8 @@ public class SurfaceViewConsumer extends BaseWindowConsumer implements SurfaceHo
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
         LogUtil.i(TAG, "surfaceChanged:" + width + "x" + height);
         GLES20.glViewport(0, 0, width, height);
-        resetViewport();
         mWidth = width;
         mHeight = height;
-        needResetSurface = true;
     }
 
     @Override
