@@ -23,6 +23,7 @@ import io.agora.capture.framework.modules.processors.WatermarkProcessor;
 import io.agora.capture.framework.modules.producers.IVideoProducer;
 import io.agora.capture.framework.util.LogUtil;
 import io.agora.capture.framework.util.MatrixOperator;
+import io.agora.capture.video.camera.Constant;
 import io.agora.capture.video.camera.VideoCaptureFrame;
 
 public class VideoChannel extends HandlerThread {
@@ -34,7 +35,7 @@ public class VideoChannel extends HandlerThread {
     private IVideoProducer mProducer;
     private List<IVideoConsumer> mOnScreenConsumers = new ArrayList<>();
     private List<IVideoConsumer> mOffScreenConsumers = new ArrayList<>();
-    private int mOnScreenConsumerMirrorMode;
+    private int mOnScreenConsumerMirrorMode = Constant.MIRROR_MODE_AUTO;
     private IPreprocessor mPreprocessor;
 
     // Used to rotate the image to normal direction according

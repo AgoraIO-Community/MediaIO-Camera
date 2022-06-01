@@ -198,7 +198,7 @@ public abstract class VideoCapture extends VideoProducer {
                 null,
                 System.currentTimeMillis(),
                 pCameraNativeOrientation,
-                mirrored);
+                pInvertDeviceOrientationReadings);
 
         pushVideoFrame(frame);
 

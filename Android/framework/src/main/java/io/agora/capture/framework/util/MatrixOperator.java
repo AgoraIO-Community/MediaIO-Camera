@@ -30,6 +30,9 @@ public class MatrixOperator {
     }
 
     public void update(int displayWidth,int displayHeight,int realWidth,int realHeight){
+        if(this.displayWidth == displayWidth && this.displayHeight == displayHeight && this.realWidth == realWidth && this.realHeight == realHeight){
+            return;
+        }
         this.displayWidth = displayWidth;
         this.displayHeight = displayHeight;
         this.realHeight = realHeight;
@@ -38,6 +41,9 @@ public class MatrixOperator {
     }
 
     public void setScaleType(@ScaleType int scaleType) {
+        if(this.scaleType == scaleType){
+            return;
+        }
         this.scaleType = scaleType;
         updateScaleType();
     }
@@ -63,6 +69,9 @@ public class MatrixOperator {
     }
 
     public void setScaleRadio(float scaleRadio){
+        if(this.scaleRadio == scaleRadio){
+            return;
+        }
         this.scaleRadio = scaleRadio;
         updateTransform();
     }
@@ -86,16 +95,25 @@ public class MatrixOperator {
     }
 
     public void translateX(float translate){
+        if(this.translateX == translate){
+            return;
+        }
         translateX = translate;
         updateTransform();
     }
 
     public void translateY(float translate){
+        if(this.translateY == translate){
+            return;
+        }
         translateY = translate;
         updateTransform();
     }
 
     public void setMirror(boolean mirror) {
+        if(this.mirror == mirror){
+            return;
+        }
         this.mirror = mirror;
         updateTransform();
     }

@@ -6,6 +6,7 @@ import android.view.TextureView;
 
 import io.agora.capture.framework.modules.channels.VideoChannel;
 import io.agora.capture.framework.util.LogUtil;
+import io.agora.capture.framework.util.MatrixOperator;
 import io.agora.capture.video.camera.VideoCaptureFrame;
 import io.agora.capture.video.camera.VideoModule;
 
@@ -16,8 +17,8 @@ public class TextureViewConsumer extends BaseWindowConsumer implements TextureVi
     private int mWidth;
     private int mHeight;
 
-    public TextureViewConsumer() {
-        super(VideoModule.instance());
+    public TextureViewConsumer(@MatrixOperator.ScaleType int scaleType) {
+        super(VideoModule.instance(), false, scaleType);
     }
 
     @Override
@@ -71,9 +72,7 @@ public class TextureViewConsumer extends BaseWindowConsumer implements TextureVi
     @Override
     public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
         GLES20.glViewport(0, 0, width, height);
-        resetViewport();
         setSize(width, height);
-        needResetSurface = true;
     }
 
     private void setSize(int width, int height) {

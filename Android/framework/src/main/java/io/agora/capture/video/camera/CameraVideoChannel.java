@@ -39,7 +39,13 @@ public class CameraVideoChannel extends VideoChannel {
      * switchCamera succeeds.
      */
     public void setFacing(int facing) {
-        mFacing = facing;
+        if(mFacing != facing){
+            if(!mCapturedStarted){
+                mFacing = facing;
+            }else{
+                switchCamera();
+            }
+        }
     }
 
     /**
