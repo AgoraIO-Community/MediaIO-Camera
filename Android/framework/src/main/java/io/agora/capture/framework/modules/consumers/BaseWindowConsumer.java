@@ -13,6 +13,7 @@ import io.agora.capture.framework.gles.ProgramTextureOES;
 import io.agora.capture.framework.gles.core.EglCore;
 import io.agora.capture.framework.modules.channels.ChannelManager;
 import io.agora.capture.framework.modules.channels.VideoChannel;
+import io.agora.capture.framework.util.LogUtil;
 import io.agora.capture.framework.util.MatrixOperator;
 import io.agora.capture.video.camera.Constant;
 import io.agora.capture.video.camera.VideoCaptureFrame;
@@ -33,6 +34,8 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
     private final MatrixOperator mMVPMatrix;
 
     private final boolean uniqueGLEnv;
+    private volatile boolean uniqueIsRunning = false;
+    private volatile boolean uniqueIsQuit = false;
     private EglCore uniqueEglCore;
     private HandlerThread uniqueThread;
     private Handler uniqueThreadHandler;
@@ -100,42 +103,55 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
     @Override
     public void recycle() {
         if (uniqueGLEnv) {
-            runOnUniqueThread(this::unInitUniqueGlEnv);
+            unInitUniqueGlEnv();
         } else {
             recycle(videoChannel.getChannelContext().getEglCore());
         }
     }
 
     private void initUniqueGLEnv(EGLContext shareContext) {
-        uniqueThread = new HandlerThread(this.getClass().getSimpleName());
+        uniqueIsQuit = false;
+        uniqueThread = new HandlerThread(this.getClass().getSimpleName()){
+            @Override
+            public void run() {
+                if(uniqueIsQuit){
+                    return;
+                }
+                uniqueEglCore = new EglCore(shareContext, 0);
+                uniqueIsRunning = true;
+                super.run();
+                uniqueIsRunning = false;
+                if (uniqueProgramOES != null) {
+                    uniqueProgramOES.release();
+                    uniqueProgramOES = null;
+                }
+                if (uniqueProgram2d != null) {
+                    uniqueProgram2d.release();
+                    uniqueProgram2d = null;
+                }
+                if (uniqueEglCore != null) {
+                    recycle(uniqueEglCore);
+                    uniqueEglCore.release();
+                    uniqueEglCore = null;
+                }
+            }
+        };
         uniqueThread.start();
-        uniqueThreadHandler = new Handler(uniqueThread.getLooper());
 
         runOnUniqueThread(() -> {
-            uniqueEglCore = new EglCore(shareContext, 0);
+            if (uniqueIsRunning) {
+                uniqueEglCore = new EglCore(shareContext, 0);
+            }
         });
     }
 
     private void unInitUniqueGlEnv() {
-        runOnUniqueThread(() -> {
-            if (uniqueProgramOES != null) {
-                uniqueProgramOES.release();
-                uniqueProgramOES = null;
-            }
-            if (uniqueProgram2d != null) {
-                uniqueProgram2d.release();
-                uniqueProgram2d = null;
-            }
-            if (uniqueEglCore != null) {
-                recycle(uniqueEglCore);
-                uniqueEglCore.release();
-                uniqueEglCore = null;
-            }
-            if (uniqueThreadHandler != null) {
-                uniqueThreadHandler.removeCallbacksAndMessages(null);
-                uniqueThreadHandler = null;
-            }
-        });
+        uniqueIsRunning = false;
+        uniqueIsQuit = true;
+        if (uniqueThreadHandler != null) {
+            uniqueThreadHandler.removeCallbacksAndMessages(null);
+            uniqueThreadHandler = null;
+        }
         if (uniqueThread != null) {
             uniqueThread.quitSafely();
             uniqueThread = null;
@@ -143,13 +159,14 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
     }
 
     private void runOnUniqueThread(Runnable runnable) {
-        if (uniqueThreadHandler == null) {
+        if (!uniqueIsRunning) {
             return;
         }
         if (Thread.currentThread() != uniqueThread) {
-            if (uniqueThread != null && uniqueThread.isAlive() && uniqueThreadHandler != null) {
-                uniqueThreadHandler.post(runnable);
+            if(uniqueThreadHandler == null){
+                uniqueThreadHandler = new Handler(uniqueThread.getLooper());
             }
+            uniqueThreadHandler.post(runnable);
         } else {
             runnable.run();
         }
@@ -172,7 +189,12 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
             if (surface != null) {
                 Object target = getDrawingTarget();
                 if (target != null) {
-                    drawingEglSurface = eglCore.createWindowSurface(target);
+                    try {
+                        drawingEglSurface = eglCore.createWindowSurface(target);
+                    } catch (Exception e) {
+                        LogUtil.e(this, "EGL >> createWindowSurface error : \n" + e.toString());
+                        return;
+                    }
                     needResetSurface = false;
                 }
             }
