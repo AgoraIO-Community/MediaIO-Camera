@@ -7,12 +7,15 @@ package io.agora.capture.video.camera;
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.opengl.EGLContext;
+import android.os.Handler;
+import android.os.Looper;
 
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
 import io.agora.capture.framework.modules.producers.VideoProducer;
+import io.agora.capture.framework.util.FpsUtil;
 import io.agora.capture.framework.util.LogUtil;
 
 /**
@@ -28,17 +31,36 @@ public abstract class VideoCapture extends VideoProducer {
     public static final int ERROR_CAMERA_DEVICE = 4;
     public static final int ERROR_CAMERA_SERVICE = 5;
     public static final int ERROR_CAMERA_DISCONNECTED = 6;
+    public static final int ERROR_CAMERA_FREEZED = 7;
 
     /**
      * Common class for storing a frameRate range. Values should be multiplied by 1000.
      */
-    static class FrameRateRange {
+    public static class FrameRateRange {
         int min;
         int max;
 
         FrameRateRange(int min, int max) {
             this.min = min;
             this.max = max;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            FrameRateRange that = (FrameRateRange) o;
+
+            if (min != that.min) return false;
+            return max == that.max;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = min;
+            result = 31 * result + max;
+            return result;
         }
     }
 
@@ -68,6 +90,8 @@ public abstract class VideoCapture extends VideoProducer {
         void onCameraCaptureError(int error, String message);
 
         void onCameraClosed();
+
+        FrameRateRange onSelectCameraFpsRange(List<FrameRateRange> supportFpsRange, FrameRateRange selectedRange);
     }
 
     private static final String TAG = VideoCapture.class.getSimpleName();
@@ -101,12 +125,27 @@ public abstract class VideoCapture extends VideoProducer {
 
     VideoCaptureStateListener stateListener;
 
+    private FpsUtil fpsUtil;
+
     VideoCapture(Context context) {
         pContext = context;
     }
 
     // Allocate necessary resources for capture.
-    public abstract boolean allocate(int width, int height, int frameRate, int facing);
+    public boolean allocate(int width, int height, int frameRate, int facing) {
+        if (fpsUtil == null) {
+            fpsUtil = new FpsUtil("Camera", new Handler(Looper.myLooper()), 2000, 4000, new Runnable() {
+                @Override
+                public void run() {
+                    LogUtil.e(TAG, "Camera freezed.");
+                    if(stateListener != null){
+                        stateListener.onCameraCaptureError(ERROR_CAMERA_FREEZED, "Camera failure. Client must return video buffers.");
+                    }
+                }
+            });
+        }
+        return true;
+    }
 
     public abstract void startCaptureMaybeAsync(boolean needsPreview);
 
@@ -121,6 +160,10 @@ public abstract class VideoCapture extends VideoProducer {
     abstract void updatePreviewOrientation();
 
     void deallocate() {
+        if (fpsUtil != null) {
+            fpsUtil.release();
+            fpsUtil = null;
+        }
         deallocate(true);
     }
 
@@ -199,6 +242,10 @@ public abstract class VideoCapture extends VideoProducer {
                 System.currentTimeMillis(),
                 pCameraNativeOrientation,
                 pInvertDeviceOrientationReadings);
+
+        if(fpsUtil != null){
+            fpsUtil.addFrame();
+        }
 
         pushVideoFrame(frame);
 
