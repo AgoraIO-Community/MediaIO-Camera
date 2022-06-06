@@ -113,6 +113,7 @@ public class VideoCaptureCamera
     @SuppressLint("WrongConstant")
     @Override
     public boolean allocate(final int width, final int height, final int frameRate, final int facing) {
+        super.allocate(width, height, frameRate, facing);
         LogUtil.d(TAG, "allocate: requested width: " + width + " height: " + height + " fps: " + frameRate);
 
         synchronized (mCameraStateLock) {
@@ -179,10 +180,19 @@ public class VideoCaptureCamera
         }
         // API fps ranges are scaled up x1000 to avoid floating point.
         int frameRateScaled = frameRate * 1000;
-        final FrameRateRange chosenRange =
+        FrameRateRange chosenRange =
                 getClosestFrameRateRange(ranges, frameRateScaled);
-        final int[] chosenFpsRange = new int[] {chosenRange.min, chosenRange.max};
-        LogUtil.d(TAG, "allocate: fps set to [" + chosenFpsRange[0] + "-" + chosenFpsRange[1] + "]");
+
+        if(stateListener != null){
+            FrameRateRange reSelectFpsRange = stateListener.onSelectCameraFpsRange(ranges, chosenRange);
+            if(reSelectFpsRange != null && ranges.contains(reSelectFpsRange)){
+                chosenRange = reSelectFpsRange;
+            }
+        }
+
+        int[] chosenFpsRange = new int[] {chosenRange.min, chosenRange.max};
+        LogUtil.d(TAG, "allocate: Camera fps set to [" + chosenFpsRange[0] + "-" + chosenFpsRange[1] + "]" + ", desired fps is " + frameRate);
+
 
         // Calculate size.
         List<Camera.Size> listCameraSize = parameters.getSupportedPreviewSizes();

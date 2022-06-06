@@ -30,6 +30,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.List;
+
 import io.agora.capture.framework.util.MatrixOperator;
 import io.agora.capture.video.camera.CameraVideoManager;
 import io.agora.capture.video.camera.Constant;
@@ -121,6 +123,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onCameraClosed() {
 
+            }
+
+            @Override
+            public VideoCapture.FrameRateRange onSelectCameraFpsRange(List<VideoCapture.FrameRateRange> supportFpsRange,
+                                                                      VideoCapture.FrameRateRange selectedRange) {
+
+                return null;
             }
         });
 
