@@ -156,9 +156,9 @@ public class VideoCaptureCamera
         // Making the texture transformation behaves
         // as the same as Camera2 api.
         int displayOrientation = getDisplayOrientation(cameraInfo);
-        mCamera.setDisplayOrientation(displayOrientation);
-        pCameraNativeOrientation = displayOrientation;
-        pInvertDeviceOrientationReadings = false;
+        mCamera.setDisplayOrientation(0);
+        pCameraNativeOrientation = cameraInfo.orientation;
+        pInvertDeviceOrientationReadings = curCameraFacing == Constant.CAMERA_FACING_FRONT;
 
         Camera.Parameters parameters = getCameraParameters(mCamera);
         if (parameters == null) {
@@ -215,7 +215,7 @@ public class VideoCaptureCamera
 
         mPreviewWidth = matchedWidth;
         mPreviewHeight = matchedHeight;
-        pCaptureFormat = new VideoCaptureFormat(matchedWidth, matchedHeight,
+        pCaptureFormat = new VideoCaptureFormat(mCameraId, matchedWidth, matchedHeight,
                 chosenFpsRange[1] / 1000, ImageFormat.NV21,
                 GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
         parameters.setPreviewSize(matchedWidth, matchedHeight);
@@ -362,8 +362,8 @@ public class VideoCaptureCamera
             return;
         }
         int displayOrientation = getDisplayOrientation(cameraInfo);
-        mCamera.setDisplayOrientation(displayOrientation);
-        pCameraNativeOrientation = displayOrientation;
+        mCamera.setDisplayOrientation(0);
+        pCameraNativeOrientation = cameraInfo.orientation;
     }
 
     private int getDisplayOrientation(Camera.CameraInfo cameraInfo) {

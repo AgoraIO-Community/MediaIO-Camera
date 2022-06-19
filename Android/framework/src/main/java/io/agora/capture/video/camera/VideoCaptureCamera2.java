@@ -421,7 +421,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
         mPreviewHeight = closestSupportedSize.getHeight();
 
         // |mCaptureFormat| is also used to configure the ImageReader.
-        pCaptureFormat = new VideoCaptureFormat(closestSupportedSize.getWidth(),
+        pCaptureFormat = new VideoCaptureFormat(mCameraId, closestSupportedSize.getWidth(),
                 closestSupportedSize.getHeight(),
                 aeRange.max / fpsUnitFactor,
                 ImageFormat.YUV_420_888, GLES11Ext.GL_TEXTURE_EXTERNAL_OES);

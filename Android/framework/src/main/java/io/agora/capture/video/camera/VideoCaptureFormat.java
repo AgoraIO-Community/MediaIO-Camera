@@ -12,13 +12,23 @@ public class VideoCaptureFormat {
     private int mFrameRate;
     private int mPixelFormat;
     private int mTexFormat;
+    private int mCameraId;
 
-    VideoCaptureFormat(int width, int height, int frameRate, int pixelFormat, int texFormat) {
+    VideoCaptureFormat(int cameraId, int width, int height, int frameRate, int pixelFormat, int texFormat) {
+        mCameraId = cameraId;
         mWidth = width;
         mHeight = height;
         mFrameRate = frameRate;
         mPixelFormat = pixelFormat;
         mTexFormat = texFormat;
+    }
+
+    public int getCameraId() {
+        return mCameraId;
+    }
+
+    public void setCameraId(int cameraId) {
+        this.mCameraId = cameraId;
     }
 
     public int getWidth() {
@@ -67,7 +77,7 @@ public class VideoCaptureFormat {
     }
 
     public VideoCaptureFormat copy() {
-        return new VideoCaptureFormat(
+        return new VideoCaptureFormat(mCameraId,
                 mWidth, mHeight, mFrameRate, mPixelFormat, mTexFormat);
     }
 }

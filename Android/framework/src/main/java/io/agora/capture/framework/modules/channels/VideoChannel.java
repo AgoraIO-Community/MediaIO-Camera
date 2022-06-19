@@ -103,7 +103,7 @@ public class VideoChannel extends HandlerThread {
     }
 
     private void initWatermarkProcessor() {
-        if(mWatermarkProcessor == null){
+        if (mWatermarkProcessor == null) {
             mWatermarkProcessor = new WatermarkProcessor();
         }
     }
@@ -224,8 +224,9 @@ public class VideoChannel extends HandlerThread {
 
     /**
      * Attach a consumer to the channel
+     *
      * @param consumer consumer to be attached
-     * @param type on-screen or off-screen
+     * @param type     on-screen or off-screen
      * @see io.agora.capture.framework.modules.consumers.IVideoConsumer
      */
     public void connectConsumer(final IVideoConsumer consumer, int type) {
@@ -280,33 +281,36 @@ public class VideoChannel extends HandlerThread {
         });
     }
 
-    public MatrixOperator setWatermark(@Nullable Bitmap watermarkBitmap, @MatrixOperator.ScaleType int scaleType) {
+    public void setWatermark(@Nullable Bitmap watermarkBitmap, @MatrixOperator.ScaleType int scaleType, WatermarkProcessor.OnWatermarkCreateListener listener) {
+        this.setWatermark(watermarkBitmap, scaleType, false, listener);
+    }
+
+    public void setWatermark(@Nullable Bitmap watermarkBitmap, @MatrixOperator.ScaleType int scaleType, boolean outPixel, WatermarkProcessor.OnWatermarkCreateListener listener) {
         if (mWatermarkProcessor != null) {
-            if(watermarkBitmap != null){
-                return mWatermarkProcessor.setWatermarkBitmap(watermarkBitmap, scaleType);
-            }else{
+            if (watermarkBitmap != null) {
+                mWatermarkProcessor.setWatermarkBitmap(watermarkBitmap, scaleType, outPixel, listener);
+            } else {
                 mHandler.post(() -> mWatermarkProcessor.cleanWatermark());
             }
         }
-        return null;
     }
 
     @Nullable
     public Bitmap getWatermarkBitmap() {
-        if(mWatermarkProcessor != null){
+        if (mWatermarkProcessor != null) {
             return mWatermarkProcessor.getWatermarkBitmap();
         }
         return null;
     }
 
     public void setWatermarkAlpha(float watermarkAlpha) {
-        if(mWatermarkProcessor != null){
+        if (mWatermarkProcessor != null) {
             mWatermarkProcessor.setWatermarkAlpha(watermarkAlpha);
         }
     }
 
     public float getWatermarkAlpha() {
-        if(mWatermarkProcessor != null){
+        if (mWatermarkProcessor != null) {
             return mWatermarkProcessor.getWatermarkAlpha();
         }
         return 1.0f;

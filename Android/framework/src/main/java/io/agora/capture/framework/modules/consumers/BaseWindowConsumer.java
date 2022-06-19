@@ -11,6 +11,7 @@ import android.os.HandlerThread;
 import io.agora.capture.framework.gles.ProgramTexture2d;
 import io.agora.capture.framework.gles.ProgramTextureOES;
 import io.agora.capture.framework.gles.core.EglCore;
+import io.agora.capture.framework.gles.core.GlUtil;
 import io.agora.capture.framework.modules.channels.ChannelManager;
 import io.agora.capture.framework.modules.channels.VideoChannel;
 import io.agora.capture.framework.util.LogUtil;
@@ -111,10 +112,10 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
 
     private void initUniqueGLEnv(EGLContext shareContext) {
         uniqueIsQuit = false;
-        uniqueThread = new HandlerThread(this.getClass().getSimpleName()){
+        uniqueThread = new HandlerThread(this.getClass().getSimpleName()) {
             @Override
             public void run() {
-                if(uniqueIsQuit){
+                if (uniqueIsQuit) {
                     return;
                 }
                 uniqueEglCore = new EglCore(shareContext, 0);
@@ -163,7 +164,7 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
             return;
         }
         if (Thread.currentThread() != uniqueThread) {
-            if(uniqueThreadHandler == null){
+            if (uniqueThreadHandler == null) {
                 uniqueThreadHandler = new Handler(uniqueThread.getLooper());
             }
             uniqueThreadHandler.post(runnable);
@@ -225,13 +226,13 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
         }
 
         mMVPMatrix.update(surfaceWidth, surfaceHeight, desiredWidth, desiredHeight);
-
-        if(mirrorMode == Constant.MIRROR_MODE_AUTO){
-            mMVPMatrix.setMirror(frame.mirrored);
-        }else if(mirrorMode == Constant.MIRROR_MODE_ENABLED){
-            mMVPMatrix.setMirror(true);
-        }else {
-            mMVPMatrix.setMirror(false);
+        mMVPMatrix.setRotation(frame.rotation * -1);
+        if (mirrorMode == Constant.MIRROR_MODE_AUTO) {
+            mMVPMatrix.setFlipH(frame.mirrored);
+        } else if (mirrorMode == Constant.MIRROR_MODE_ENABLED) {
+            mMVPMatrix.setFlipH(true);
+        } else {
+            mMVPMatrix.setFlipH(false);
         }
 
         if (frame.format.getTexFormat() == GLES20.GL_TEXTURE_2D) {
@@ -245,7 +246,7 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
                 uniqueProgramOES = new ProgramTextureOES();
                 programTextureOES = uniqueProgramOES;
             }
-            programTextureOES.drawFrame(frame.textureId, frame.textureTransform, mMVPMatrix.getMatrix());
+            programTextureOES.drawFrame(frame.textureId, GlUtil.IDENTITY_MATRIX, mMVPMatrix.getMatrix());
         }
 
         if (drawingEglSurface != null) {

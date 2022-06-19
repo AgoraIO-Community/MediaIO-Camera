@@ -1,6 +1,7 @@
 package io.agora.capture.framework.modules.processors;
 
 import android.graphics.Bitmap;
+import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
@@ -24,15 +25,22 @@ public class WatermarkProcessor {
     private int mWidth, mHeight;
 
     private Bitmap watermarkBitmap;
-    private boolean watermarkBitmapChange = false, watermarkRectChange = false;
+    private boolean watermarkBitmapChange = false;
     private Rect watermarkRect = new Rect();
     private int watermarkTexId;
     private float watermarkAlpha = 1.0f;
     private MatrixOperator watermarkMvp;
-    private int lostFrameRotation = 0;
+    private final MatrixOperator textureMvp = new MatrixOperator(MatrixOperator.ScaleType.FitXY);
 
     private final ProgramTexture2d programTexture2d;
     private final ProgramTextureOES programTextureOES;
+
+    private ByteBuffer rgbaOutBuffer;
+    private int rgbaOutWidth, rgbaOutHeight;
+    private byte[] rgbaOutByteArray;
+
+    private OnWatermarkCreateListener onWatermarkCreateListener;
+    private volatile boolean outPixel = false;
 
     public WatermarkProcessor() {
         programTexture2d = new ProgramTexture2d();
@@ -44,19 +52,12 @@ public class WatermarkProcessor {
             int desiredWidth = frame.format.getWidth();
             int desiredHeight = frame.format.getHeight();
 
-            if (frame.rotation == 90 || frame.rotation == 270) {
+            if (frame.rotation % 180 != 0) {
                 desiredWidth = frame.format.getHeight();
                 desiredHeight = frame.format.getWidth();
             }
 
-            boolean envChange = mayResetFBO(desiredWidth, desiredHeight) || lostFrameRotation != frame.rotation;
-            boolean texChange = watermarkBitmapChange || watermarkRectChange;
-
-            lostFrameRotation = frame.rotation;
-            if (watermarkBitmapChange) {
-                createWatermarkTexId(watermarkBitmap);
-                watermarkBitmapChange = false;
-            }
+            mayResetFBO(desiredWidth, desiredHeight);
 
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, mFboId);
             GLES20.glEnable(GLES20.GL_BLEND);
@@ -65,25 +66,44 @@ public class WatermarkProcessor {
             GLES20.glViewport(0, 0, desiredWidth, desiredHeight);
             GLES20.glClearColor(0, 0, 0, 1.0f);
 
+            textureMvp.update(desiredWidth, desiredHeight, desiredWidth, desiredHeight);
+            textureMvp.setFlipH(frame.mirrored);
+            textureMvp.setFlipV(true);
+            textureMvp.setRotation(-1 * frame.rotation);
+
             // draw camera texture
             if (frame.format.getTexFormat() == GLES11Ext.GL_TEXTURE_EXTERNAL_OES) {
-                programTextureOES.drawFrame(frame.textureId, frame.textureTransform);
+                programTextureOES.drawFrame(frame.textureId, frame.textureTransform, textureMvp.getMatrix());
             } else {
-                programTexture2d.drawFrame(frame.textureId, frame.textureTransform);
+                programTexture2d.drawFrame(frame.textureId, frame.textureTransform, textureMvp.getMatrix());
             }
 
-            if(texChange || envChange){
-                watermarkMvp.update(desiredWidth, desiredHeight, watermarkRect.width(), watermarkRect.height());
-                watermarkRectChange = false;
+            watermarkMvp.update(desiredWidth, desiredHeight, watermarkRect.width(), watermarkRect.height());
+
+            if (watermarkBitmapChange) {
+                createWatermarkTexId(watermarkBitmap);
+                if (onWatermarkCreateListener != null) {
+                    onWatermarkCreateListener.onWatermarkCreated(mTexId, watermarkMvp);
+                }
+                watermarkBitmapChange = false;
             }
 
             // draw watermark texture
             programTexture2d.drawFrame(watermarkTexId, GlUtil.IDENTITY_MATRIX, watermarkMvp.getMatrix(), watermarkAlpha);
 
+            if(outPixel){
+                frame.image = readRgbaImageData(desiredWidth, desiredHeight);
+                frame.format.setPixelFormat(ImageFormat.FLEX_RGBA_8888);
+            }else{
+                frame.image = null;
+                frame.format.setPixelFormat(ImageFormat.UNKNOWN);
+            }
+
             GLES20.glDisable(GLES20.GL_BLEND);
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
 
             frame.textureId = mTexId;
+            frame.mirrored = false;
             frame.rotation = 0;
             frame.format.setWidth(desiredWidth);
             frame.format.setHeight(desiredHeight);
@@ -95,12 +115,36 @@ public class WatermarkProcessor {
         return frame;
     }
 
-    public MatrixOperator setWatermarkBitmap(Bitmap bitmap, @MatrixOperator.ScaleType int scaleType) {
-        if (watermarkBitmap != null) {
-            watermarkBitmap.recycle();
+    private byte[] readRgbaImageData(int desiredWidth, int desiredHeight) {
+        if(rgbaOutWidth != desiredWidth || rgbaOutHeight != desiredHeight){
+            rgbaOutWidth = desiredWidth;
+            rgbaOutHeight = desiredHeight;
+            int capacity = rgbaOutWidth * rgbaOutHeight * 4;
+            rgbaOutBuffer = ByteBuffer
+                    .allocateDirect(capacity);
+            rgbaOutByteArray = new byte[capacity];
         }
+        rgbaOutBuffer.position(0);
+        GLES20.glReadPixels(0, 0, desiredWidth, desiredHeight, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, rgbaOutBuffer);
 
+        rgbaOutBuffer.get(rgbaOutByteArray);
+        return rgbaOutByteArray;
+    }
+
+    private void releaseRgbaBuffer(){
+        if(rgbaOutBuffer != null){
+            rgbaOutBuffer.reset();
+            rgbaOutBuffer = null;
+            rgbaOutWidth = rgbaOutHeight = 0;
+            rgbaOutByteArray = null;
+        }
+    }
+
+    public void setWatermarkBitmap(Bitmap bitmap, @MatrixOperator.ScaleType int scaleType, boolean outPixel, OnWatermarkCreateListener listener) {
         if (null != bitmap) {
+            if (watermarkBitmap != null) {
+                watermarkBitmap.recycle();
+            }
             android.graphics.Matrix mx = new android.graphics.Matrix();
             mx.setRotate(180);
             mx.setScale(1, -1);
@@ -108,9 +152,12 @@ public class WatermarkProcessor {
             Log.d("lq", "setWatermark: " + bitmap + "," + this.watermarkBitmap);
             watermarkRect = new Rect(0, 0, watermarkBitmap.getWidth(), watermarkBitmap.getHeight());
             watermarkMvp = new MatrixOperator(scaleType);
+            this.onWatermarkCreateListener = listener;
+            this.outPixel = outPixel;
             watermarkBitmapChange = true;
+        } else {
+            cleanWatermark();
         }
-        return watermarkMvp;
     }
 
     public Bitmap getWatermarkBitmap() {
@@ -131,8 +178,10 @@ public class WatermarkProcessor {
             watermarkBitmap = null;
         }
         watermarkMvp = null;
+        onWatermarkCreateListener = null;
         releaseFBO();
         releaseWatermarkTexId();
+        releaseRgbaBuffer();
     }
 
     private boolean mayResetFBO(int width, int height) {
@@ -232,4 +281,8 @@ public class WatermarkProcessor {
         }
     }
 
+
+    public interface OnWatermarkCreateListener {
+        void onWatermarkCreated(int textureId, MatrixOperator matrix);
+    }
 }

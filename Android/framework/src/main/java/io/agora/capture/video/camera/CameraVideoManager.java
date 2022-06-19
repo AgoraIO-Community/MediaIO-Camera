@@ -12,6 +12,7 @@ import io.agora.capture.framework.modules.consumers.IVideoConsumer;
 import io.agora.capture.framework.modules.consumers.SurfaceViewConsumer;
 import io.agora.capture.framework.modules.consumers.TextureViewConsumer;
 import io.agora.capture.framework.modules.processors.IPreprocessor;
+import io.agora.capture.framework.modules.processors.WatermarkProcessor;
 import io.agora.capture.framework.util.LogUtil;
 import io.agora.capture.framework.util.MatrixOperator;
 
@@ -270,9 +271,9 @@ public class CameraVideoManager {
         }
     }
 
-    public MatrixOperator setWaterMark(@Nullable Bitmap waterMarkBitmap) {
+    public void setWaterMark(@Nullable Bitmap waterMarkBitmap) {
         checkAvailable();
-        return setWaterMark(waterMarkBitmap, MatrixOperator.ScaleType.CenterCrop);
+        setWaterMark(waterMarkBitmap, MatrixOperator.ScaleType.CenterCrop, null);
     }
 
 
@@ -285,12 +286,11 @@ public class CameraVideoManager {
         return null;
     }
 
-    public MatrixOperator setWaterMark(@Nullable Bitmap waterMarkBitmap, @MatrixOperator.ScaleType int scaleType) {
+    public void setWaterMark(@Nullable Bitmap waterMarkBitmap, @MatrixOperator.ScaleType int scaleType, WatermarkProcessor.OnWatermarkCreateListener listener) {
         checkAvailable();
         if (mCameraChannel != null) {
-            return mCameraChannel.setWatermark(waterMarkBitmap, scaleType);
+            mCameraChannel.setWatermark(waterMarkBitmap, scaleType, listener);
         }
-        return null;
     }
 
     public void setWaterMarkAlpha(float waterMarkAlpha) {

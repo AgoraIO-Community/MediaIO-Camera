@@ -19,6 +19,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.SeekBar;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,6 +33,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.List;
 
+import io.agora.capture.framework.modules.processors.WatermarkProcessor;
 import io.agora.capture.framework.util.MatrixOperator;
 import io.agora.capture.video.camera.CameraVideoManager;
 import io.agora.capture.video.camera.Constant;
@@ -103,7 +105,6 @@ public class MainActivity extends AppCompatActivity {
         // The loading may block the video rendering for a
         // little while.
         mCameraVideoManager = CameraVideoManager.create(this, null, Camera.CameraInfo.CAMERA_FACING_FRONT, true);
-
         mCameraVideoManager.setCameraStateListener(new VideoCapture.VideoCaptureStateListener() {
             @Override
             public void onFirstCapturedFrame(int width, int height) {
@@ -128,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public VideoCapture.FrameRateRange onSelectCameraFpsRange(List<VideoCapture.FrameRateRange> supportFpsRange,
                                                                       VideoCapture.FrameRateRange selectedRange) {
-
+                // 返回空使用selectedRange
                 return null;
             }
         });
@@ -137,7 +138,9 @@ public class MainActivity extends AppCompatActivity {
         mCameraVideoManager.setPictureSize(640, 480);
         mCameraVideoManager.setFrameRate(24);
         mCameraVideoManager.setFacing(Constant.CAMERA_FACING_FRONT);
-         mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
+        //mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
+
+        mCameraVideoManager.switchCamera();
 
         // The preview surface is actually considered as
         // an on-screen consumer under the hood.
@@ -238,12 +241,19 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (watermarkBitmap != null) {
-            watermarkMatrixOperator = mCameraVideoManager.setWaterMark(watermarkBitmap, MatrixOperator.ScaleType.CenterCrop);
-            mCameraVideoManager.setWaterMarkAlpha(0.5f);
-            watermarkMatrixOperator.setScaleRadio(0.5f);
-            watermarkMatrixOperator.translateX(-0.6f);
-            watermarkMatrixOperator.translateY(-0.6f);
-            updateSeekbar(true);
+            mCameraVideoManager.setWaterMark(watermarkBitmap, MatrixOperator.ScaleType.FitCenter, new WatermarkProcessor.OnWatermarkCreateListener() {
+                @Override
+                public void onWatermarkCreated(int textureId, MatrixOperator matrix) {
+                    watermarkMatrixOperator = matrix;
+                    mCameraVideoManager.setWaterMarkAlpha(0.5f);
+                    watermarkMatrixOperator.setScaleRadio(0.5f);
+                    watermarkMatrixOperator.translateX(-0.6f);
+                    watermarkMatrixOperator.translateY(-0.6f);
+                    runOnUiThread(() -> updateSeekbar(true));
+                }
+            });
+
+
         }
 
     }
@@ -384,6 +394,46 @@ public class MainActivity extends AppCompatActivity {
             public void onStopTrackingTouch(SeekBar seekBar) {
 
             }
+        });
+
+        // rotation
+        SeekBar sliderWatermarkRotation = findViewById(R.id.slider_watermark_rotate);
+        TextView sliderWatermarkRotationValue = findViewById(R.id.slider_watermark_rotate_value);
+        sliderWatermarkRotation.setProgress((int) (watermarkMatrixOperator.getRotation() * (100.f / 360)));
+        sliderWatermarkRotationValue.setText(watermarkMatrixOperator.getRotation() + "");
+        sliderWatermarkRotation.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    float rotation = progress * (360.f / 100) ;
+                    watermarkMatrixOperator.setRotation(-rotation);
+                    sliderWatermarkRotationValue.setText(-rotation + "");
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        // FlipH
+        Switch switchFlipH = findViewById(R.id.switch_flip_h);
+        switchFlipH.setChecked(watermarkMatrixOperator.isFlipH());
+        switchFlipH.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            watermarkMatrixOperator.setFlipH(isChecked);
+        });
+
+        // FlipV
+        Switch switchFlipV = findViewById(R.id.switch_flip_v);
+        switchFlipV.setChecked(watermarkMatrixOperator.isFlipV());
+        switchFlipV.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            watermarkMatrixOperator.setFlipV(isChecked);
         });
     }
 

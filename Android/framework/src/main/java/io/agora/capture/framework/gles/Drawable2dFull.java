@@ -37,10 +37,10 @@ public class Drawable2dFull extends Drawable2d {
             1.0f, 1.0f,   // 3 top right
     };
     private static final float FULL_RECTANGLE_TEX_COORDS[] = {
-            0.0f, 0.0f,     // 0 bottom left
-            1.0f, 0.0f,     // 1 bottom right
-            0.0f, 1.0f,     // 2 top left
-            1.0f, 1.0f      // 3 top right
+            0.0f, 1.0f,     // 0 top left
+            1.0f, 1.0f,     // 1 top right
+            0.0f, 0.0f,     // 2 bottom left
+            1.0f, 0.0f      // 3 bottom right
     };
 
     public Drawable2dFull() {
