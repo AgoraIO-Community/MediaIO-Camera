@@ -137,21 +137,21 @@ public class MainActivity extends AppCompatActivity {
         mCameraVideoManager.setPictureSize(640, 480);
         mCameraVideoManager.setFrameRate(24);
         mCameraVideoManager.setFacing(Constant.CAMERA_FACING_FRONT);
-         mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
+        mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
 
         // The preview surface is actually considered as
         // an on-screen consumer under the hood.
         mVideoSurface = new SurfaceView(this);
         mVideoLayout = findViewById(R.id.video_layout);
         mVideoLayout.addView(mVideoSurface);
-        mCameraVideoManager.setLocalPreview((SurfaceView)mVideoSurface, "Surface1");
+        mCameraVideoManager.setLocalPreview((SurfaceView) mVideoSurface, MatrixOperator.ScaleType.FitCenter, "Surface1");
 
         mSmallVideoLayout = findViewById(R.id.small_video_layout);
         mSmallVideoLayout.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
                 Object tag = v.getTag();
-                if(tag == null){
+                if (tag == null) {
                     CountDownTimer countDownTimer = new CountDownTimer(2000 * 200, 200) {
                         @Override
                         public void onTick(long millisUntilFinished) {
@@ -165,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
                     };
                     countDownTimer.start();
                     v.setTag(countDownTimer);
-                }else{
+                } else {
                     CountDownTimer countDownTimer = (CountDownTimer) tag;
                     countDownTimer.cancel();
                     v.setTag(null);
@@ -186,10 +186,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void switchVideoLayout() {
-        if(mVideoLayout.getChildCount() > 0){
+        if (mVideoLayout.getChildCount() > 0) {
             mVideoLayout.removeAllViews();
             mSmallVideoLayout.addView(mVideoSurface);
-        }else{
+        } else {
             mSmallVideoLayout.removeAllViews();
             mVideoLayout.addView(mVideoSurface);
         }
@@ -212,7 +212,7 @@ public class MainActivity extends AppCompatActivity {
         imageLauncher.launch(null);
     }
 
-    public void jumpNext(View v){
+    public void jumpNext(View v) {
         mJumpNext = true;
         startActivity(new Intent(MainActivity.this, NextActivity.class));
     }
@@ -233,16 +233,16 @@ public class MainActivity extends AppCompatActivity {
         } catch (SecurityException e) {
             showRequestStoragePermissionDialog();
         } catch (Exception e) {
-            Toast.makeText(this, "Error happened in fetching bitmap\n"+e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Error happened in fetching bitmap\n" + e.getMessage(), Toast.LENGTH_SHORT).show();
             e.printStackTrace();
         }
 
         if (watermarkBitmap != null) {
-            watermarkMatrixOperator = mCameraVideoManager.setWaterMark(watermarkBitmap, MatrixOperator.ScaleType.CenterCrop);
-            mCameraVideoManager.setWaterMarkAlpha(0.5f);
-            watermarkMatrixOperator.setScaleRadio(0.5f);
-            watermarkMatrixOperator.translateX(-0.6f);
-            watermarkMatrixOperator.translateY(-0.6f);
+            watermarkMatrixOperator = mCameraVideoManager.setWaterMark(watermarkBitmap, MatrixOperator.ScaleType.FitCenter);
+//            mCameraVideoManager.setWaterMarkAlpha(0.5f);
+//            watermarkMatrixOperator.setScaleRadio(0.5f);
+//            watermarkMatrixOperator.translateX(-0.6f);
+//            watermarkMatrixOperator.translateY(-0.6f);
             updateSeekbar(true);
         }
 
@@ -251,22 +251,22 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        if(mCameraVideoManager != null){
+        if (mCameraVideoManager != null) {
             mCameraVideoManager.updatePreviewOrientation();
         }
 
     }
 
-    private void clearWatermark(){
+    private void clearWatermark() {
         mCameraVideoManager.setWaterMark(null);
         watermarkMatrixOperator = null;
         // updateUI
         updateSeekbar(false);
     }
 
-    private void updateSeekbar(boolean visible){
+    private void updateSeekbar(boolean visible) {
         View layout = findViewById(R.id.watermark_layout);
-        if(!visible){
+        if (!visible) {
             layout.setVisibility(View.GONE);
             return;
         }
@@ -325,7 +325,7 @@ public class MainActivity extends AppCompatActivity {
         // translate x
         SeekBar sliderWatermarkTranX = findViewById(R.id.slider_watermark_tranx);
         TextView sliderWatermarkTranXValue = findViewById(R.id.slider_watermark_tranx_value);
-        sliderWatermarkTranX.setProgress((int)(50f + watermarkMatrixOperator.getTranslateX() * 50f));
+        sliderWatermarkTranX.setProgress((int) (50f + watermarkMatrixOperator.getTranslateX() * 50f));
         sliderWatermarkTranXValue.setText(watermarkMatrixOperator.getTranslateX() + "");
         sliderWatermarkTranX.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -335,7 +335,7 @@ public class MainActivity extends AppCompatActivity {
                     if (progress > 50) {
                         translate = (progress - 50) / 50f;
                         watermarkMatrixOperator.translateX(translate);
-                    }else{
+                    } else {
                         translate = progress / 50f - 1.f;
                         watermarkMatrixOperator.translateX(translate);
                     }
@@ -367,7 +367,7 @@ public class MainActivity extends AppCompatActivity {
                     if (progress > 50) {
                         translate = (progress - 50) / 50f;
                         watermarkMatrixOperator.translateY(translate);
-                    }else{
+                    } else {
                         translate = progress / 50f - 1.f;
                         watermarkMatrixOperator.translateY(translate);
                     }
@@ -384,6 +384,16 @@ public class MainActivity extends AppCompatActivity {
             public void onStopTrackingTouch(SeekBar seekBar) {
 
             }
+        });
+
+        findViewById(R.id.btn_center_crop).setOnClickListener(v -> {
+            watermarkMatrixOperator.setScaleType(MatrixOperator.ScaleType.CenterCrop);
+        });
+        findViewById(R.id.btn_fit_center).setOnClickListener(v -> {
+            watermarkMatrixOperator.setScaleType(MatrixOperator.ScaleType.FitCenter);
+        });
+        findViewById(R.id.btn_fit_xy).setOnClickListener(v -> {
+            watermarkMatrixOperator.setScaleType(MatrixOperator.ScaleType.FitXY);
         });
     }
 
@@ -414,7 +424,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (!mJumpNext && !mFinished && mCameraVideoManager != null) mCameraVideoManager.stopCapture();
+        if (!mJumpNext && !mFinished && mCameraVideoManager != null)
+            mCameraVideoManager.stopCapture();
     }
 
     @Override

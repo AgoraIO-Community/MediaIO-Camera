@@ -140,6 +140,7 @@ public class VideoCaptureCamera
 
         try {
             mCamera = Camera.open(mCameraId);
+            mCamera.setDisplayOrientation(90);
         } catch (RuntimeException ex) {
             LogUtil.e(TAG, "allocate: Camera.open: " + ex);
             mErrorCallback.onError(ERROR_UNKNOWN, null);
@@ -155,10 +156,8 @@ public class VideoCaptureCamera
 
         // Making the texture transformation behaves
         // as the same as Camera2 api.
-        int displayOrientation = getDisplayOrientation(cameraInfo);
-        mCamera.setDisplayOrientation(displayOrientation);
-        pCameraNativeOrientation = displayOrientation;
-        pInvertDeviceOrientationReadings = false;
+        pCameraNativeOrientation = cameraInfo.orientation;
+        pInvertDeviceOrientationReadings = cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT;
 
         Camera.Parameters parameters = getCameraParameters(mCamera);
         if (parameters == null) {
@@ -358,12 +357,9 @@ public class VideoCaptureCamera
         Camera.CameraInfo cameraInfo = getCameraInfo(mCameraId);
         if (mCamera == null || cameraInfo == null) {
             LogUtil.e(TAG, "vide isUpsideDown: mCamera is" + mCamera + "cameraInfo is " + cameraInfo);
-
             return;
         }
-        int displayOrientation = getDisplayOrientation(cameraInfo);
-        mCamera.setDisplayOrientation(displayOrientation);
-        pCameraNativeOrientation = displayOrientation;
+        //mCamera.setDisplayOrientation(getDisplayOrientation(cameraInfo));
     }
 
     private int getDisplayOrientation(Camera.CameraInfo cameraInfo) {
