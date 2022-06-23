@@ -98,8 +98,8 @@ public class VideoChannel extends HandlerThread {
     }
 
     private void initRotateProcessor() {
-//        mRotateProcessor = new RotateProcessor();
-//        mRotateProcessor.init(mContext);
+        mRotateProcessor = new RotateProcessor();
+        mRotateProcessor.init(mContext);
     }
 
     private void initWatermarkProcessor() {

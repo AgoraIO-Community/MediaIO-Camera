@@ -195,6 +195,35 @@
 
         </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_center_crop"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="CenterCrop"/>
+
+            <Button
+                android:id="@+id/btn_fit_center"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="FitCenter"/>
+
+            <Button
+                android:id="@+id/btn_fit_xy"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="FitXY"/>
+
+
+        </LinearLayout>
+
     </LinearLayout>
 
 </RelativeLayout>
