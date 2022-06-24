@@ -158,7 +158,7 @@ public class VideoCaptureCamera
         int displayOrientation = getDisplayOrientation(cameraInfo);
         mCamera.setDisplayOrientation(0);
         pCameraNativeOrientation = cameraInfo.orientation;
-        pInvertDeviceOrientationReadings = curCameraFacing == Constant.CAMERA_FACING_FRONT;
+        pInvertDeviceOrientationReadings = cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT;
 
         Camera.Parameters parameters = getCameraParameters(mCamera);
         if (parameters == null) {

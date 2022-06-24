@@ -103,10 +103,12 @@ public class MatrixOperator {
 
 
         if (_flipH) {
-            Matrix.rotateM(tmp, 0, tmp, 0, 180, 0, 1f, 0);
+            //Matrix.rotateM(tmp, 0, tmp, 0, 180, 0, 1f, 0);
+            Matrix.scaleM(tmp, 0, tmp, 0, -1f, 1f, 1f);
         }
         if (_flipV) {
-            Matrix.rotateM(tmp, 0, tmp, 0, 180, 1f, 0f, 0);
+            //Matrix.rotateM(tmp, 0, tmp, 0, 180, 1f, 0f, 0);
+            Matrix.scaleM(tmp, 0, tmp, 0, 1f, -1f, 1f);
         }
 
         float _rotation = rotation;
