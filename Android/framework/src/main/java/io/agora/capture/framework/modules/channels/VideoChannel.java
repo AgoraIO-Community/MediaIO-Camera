@@ -1,14 +1,11 @@
 package io.agora.capture.framework.modules.channels;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.opengl.EGLContext;
 import android.opengl.EGLSurface;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.text.TextUtils;
-
-import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +19,6 @@ import io.agora.capture.framework.modules.processors.RotateProcessor;
 import io.agora.capture.framework.modules.processors.WatermarkProcessor;
 import io.agora.capture.framework.modules.producers.IVideoProducer;
 import io.agora.capture.framework.util.LogUtil;
-import io.agora.capture.framework.util.MatrixOperator;
 import io.agora.capture.video.camera.Constant;
 import io.agora.capture.video.camera.VideoCaptureFrame;
 
@@ -280,36 +276,8 @@ public class VideoChannel extends HandlerThread {
         });
     }
 
-    public MatrixOperator setWatermark(@Nullable Bitmap watermarkBitmap, @MatrixOperator.ScaleType int scaleType) {
-        if (mWatermarkProcessor != null) {
-            if(watermarkBitmap != null){
-                return mWatermarkProcessor.setWatermarkBitmap(watermarkBitmap, scaleType);
-            }else{
-                mHandler.post(() -> mWatermarkProcessor.cleanWatermark());
-            }
-        }
-        return null;
-    }
-
-    @Nullable
-    public Bitmap getWatermarkBitmap() {
-        if(mWatermarkProcessor != null){
-            return mWatermarkProcessor.getWatermarkBitmap();
-        }
-        return null;
-    }
-
-    public void setWatermarkAlpha(float watermarkAlpha) {
-        if(mWatermarkProcessor != null){
-            mWatermarkProcessor.setWatermarkAlpha(watermarkAlpha);
-        }
-    }
-
-    public float getWatermarkAlpha() {
-        if(mWatermarkProcessor != null){
-            return mWatermarkProcessor.getWatermarkAlpha();
-        }
-        return 1.0f;
+    public WatermarkProcessor getWatermarkProcessor() {
+        return mWatermarkProcessor;
     }
 
     public void disconnectConsumer(IVideoConsumer consumer) {

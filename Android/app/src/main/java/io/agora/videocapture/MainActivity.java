@@ -36,6 +36,7 @@ import io.agora.capture.framework.util.MatrixOperator;
 import io.agora.capture.video.camera.CameraVideoManager;
 import io.agora.capture.video.camera.Constant;
 import io.agora.capture.video.camera.VideoCapture;
+import io.agora.capture.video.camera.WatermarkConfig;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -144,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
         mVideoSurface = new SurfaceView(this);
         mVideoLayout = findViewById(R.id.video_layout);
         mVideoLayout.addView(mVideoSurface);
-        mCameraVideoManager.setLocalPreview((SurfaceView) mVideoSurface, MatrixOperator.ScaleType.FitCenter, "Surface1");
+        mCameraVideoManager.setLocalPreview((SurfaceView) mVideoSurface, MatrixOperator.ScaleType.CenterCrop, "Surface1");
 
         mSmallVideoLayout = findViewById(R.id.small_video_layout);
         mSmallVideoLayout.setOnLongClickListener(new View.OnLongClickListener() {
@@ -205,6 +206,9 @@ public class MainActivity extends AppCompatActivity {
         if (mCameraVideoManager != null) {
             mIsMirrored = !mIsMirrored;
             mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
+            if(watermarkMatrixOperator != null){
+                watermarkMatrixOperator.setMirror(mIsMirrored);
+            }
         }
     }
 
@@ -238,11 +242,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (watermarkBitmap != null) {
-            watermarkMatrixOperator = mCameraVideoManager.setWaterMark(watermarkBitmap, MatrixOperator.ScaleType.FitCenter);
-//            mCameraVideoManager.setWaterMarkAlpha(0.5f);
-//            watermarkMatrixOperator.setScaleRadio(0.5f);
-//            watermarkMatrixOperator.translateX(-0.6f);
-//            watermarkMatrixOperator.translateY(-0.6f);
+            WatermarkConfig config = new WatermarkConfig(360, 640);
+            watermarkMatrixOperator = mCameraVideoManager.setWaterMark(watermarkBitmap, config);
+            watermarkBitmap.recycle();
+
             updateSeekbar(true);
         }
 
@@ -258,13 +261,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void clearWatermark() {
-        mCameraVideoManager.setWaterMark(null);
+        mCameraVideoManager.cleanWatermark();
         watermarkMatrixOperator = null;
         // updateUI
         updateSeekbar(false);
     }
 
     private void updateSeekbar(boolean visible) {
+        if(watermarkMatrixOperator == null){
+            visible = false;
+        }
         View layout = findViewById(R.id.watermark_layout);
         if (!visible) {
             layout.setVisibility(View.GONE);

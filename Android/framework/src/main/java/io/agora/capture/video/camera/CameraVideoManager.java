@@ -12,6 +12,7 @@ import io.agora.capture.framework.modules.consumers.IVideoConsumer;
 import io.agora.capture.framework.modules.consumers.SurfaceViewConsumer;
 import io.agora.capture.framework.modules.consumers.TextureViewConsumer;
 import io.agora.capture.framework.modules.processors.IPreprocessor;
+import io.agora.capture.framework.modules.processors.WatermarkProcessor;
 import io.agora.capture.framework.util.LogUtil;
 import io.agora.capture.framework.util.MatrixOperator;
 
@@ -270,25 +271,28 @@ public class CameraVideoManager {
         }
     }
 
-    public MatrixOperator setWaterMark(@Nullable Bitmap waterMarkBitmap) {
-        checkAvailable();
-        return setWaterMark(waterMarkBitmap, MatrixOperator.ScaleType.CenterCrop);
-    }
-
-
     @Nullable
     public Bitmap getWaterMark() {
         checkAvailable();
         if (mCameraChannel != null) {
-            return mCameraChannel.getWatermarkBitmap();
+            WatermarkProcessor watermarkProcessor = mCameraChannel.getWatermarkProcessor();
+            if(watermarkProcessor != null){
+                return watermarkProcessor.getWatermarkBitmap();
+            }
+
         }
         return null;
     }
 
-    public MatrixOperator setWaterMark(@Nullable Bitmap waterMarkBitmap, @MatrixOperator.ScaleType int scaleType) {
+    public MatrixOperator setWaterMark(@Nullable Bitmap waterMarkBitmap, WatermarkConfig config) {
         checkAvailable();
         if (mCameraChannel != null) {
-            return mCameraChannel.setWatermark(waterMarkBitmap, scaleType);
+            WatermarkProcessor watermarkProcessor = mCameraChannel.getWatermarkProcessor();
+            if(watermarkProcessor != null){
+                watermarkProcessor.setOutSize(config.outWidth, config.outHeight);
+                watermarkProcessor.setOriginTexScaleType(config.originTexScaleType);
+                return watermarkProcessor.setWatermarkBitmap(waterMarkBitmap, config.watermarkWidth, config.watermarkHeight, config.watermarkScaleType);
+            }
         }
         return null;
     }
@@ -296,16 +300,32 @@ public class CameraVideoManager {
     public void setWaterMarkAlpha(float waterMarkAlpha) {
         checkAvailable();
         if (mCameraChannel != null) {
-            mCameraChannel.setWatermarkAlpha(waterMarkAlpha);
+            WatermarkProcessor watermarkProcessor = mCameraChannel.getWatermarkProcessor();
+            if(watermarkProcessor != null){
+                watermarkProcessor.setWatermarkAlpha(waterMarkAlpha);
+            }
         }
     }
 
     public float getWatermarkAlpha(){
         checkAvailable();
         if (mCameraChannel != null) {
-            return mCameraChannel.getWatermarkAlpha();
+            WatermarkProcessor watermarkProcessor = mCameraChannel.getWatermarkProcessor();
+            if(watermarkProcessor != null){
+                return watermarkProcessor.getWatermarkAlpha();
+            }
         }
         return 1f;
+    }
+
+    public void cleanWatermark(){
+        checkAvailable();
+        if (mCameraChannel != null) {
+            WatermarkProcessor watermarkProcessor = mCameraChannel.getWatermarkProcessor();
+            if(watermarkProcessor != null){
+                watermarkProcessor.cleanWatermark();
+            }
+        }
     }
 
     public void setCameraStateListener(VideoCapture.VideoCaptureStateListener listener) {
