@@ -33,8 +33,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.List;
 
+import io.agora.capture.framework.gles.MatrixOperator;
 import io.agora.capture.framework.modules.processors.WatermarkProcessor;
-import io.agora.capture.framework.util.MatrixOperator;
 import io.agora.capture.video.camera.CameraVideoManager;
 import io.agora.capture.video.camera.Constant;
 import io.agora.capture.video.camera.VideoCapture;
@@ -147,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
         mVideoSurface = new SurfaceView(this);
         mVideoLayout = findViewById(R.id.video_layout);
         mVideoLayout.addView(mVideoSurface);
-        mCameraVideoManager.setLocalPreview((SurfaceView)mVideoSurface, "Surface1");
+        mCameraVideoManager.setLocalPreview((SurfaceView)mVideoSurface, MatrixOperator.ScaleType.FitCenter, "Surface1");
 
         mSmallVideoLayout = findViewById(R.id.small_video_layout);
         mSmallVideoLayout.setOnLongClickListener(new View.OnLongClickListener() {

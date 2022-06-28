@@ -7,6 +7,7 @@ import android.view.TextureView;
 
 import androidx.annotation.Nullable;
 
+import io.agora.capture.framework.gles.MatrixOperator;
 import io.agora.capture.framework.modules.channels.ChannelManager;
 import io.agora.capture.framework.modules.consumers.IVideoConsumer;
 import io.agora.capture.framework.modules.consumers.SurfaceViewConsumer;
@@ -14,7 +15,6 @@ import io.agora.capture.framework.modules.consumers.TextureViewConsumer;
 import io.agora.capture.framework.modules.processors.IPreprocessor;
 import io.agora.capture.framework.modules.processors.WatermarkProcessor;
 import io.agora.capture.framework.util.LogUtil;
-import io.agora.capture.framework.util.MatrixOperator;
 
 /**
  * VideoManager is designed as the up-level encapsulation of

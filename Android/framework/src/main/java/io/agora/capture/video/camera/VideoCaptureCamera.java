@@ -155,9 +155,8 @@ public class VideoCaptureCamera
 
         // Making the texture transformation behaves
         // as the same as Camera2 api.
-        int displayOrientation = getDisplayOrientation(cameraInfo);
         mCamera.setDisplayOrientation(0);
-        pCameraNativeOrientation = cameraInfo.orientation;
+        pCameraNativeOrientation = getDisplayOrientation(cameraInfo);
         pInvertDeviceOrientationReadings = cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT;
 
         Camera.Parameters parameters = getCameraParameters(mCamera);
@@ -361,9 +360,7 @@ public class VideoCaptureCamera
 
             return;
         }
-        int displayOrientation = getDisplayOrientation(cameraInfo);
-        mCamera.setDisplayOrientation(0);
-        pCameraNativeOrientation = cameraInfo.orientation;
+        pCameraNativeOrientation = getDisplayOrientation(cameraInfo);
     }
 
     private int getDisplayOrientation(Camera.CameraInfo cameraInfo) {
@@ -390,14 +387,10 @@ public class VideoCaptureCamera
                 break;
             }
         }
-        int displayOrientation;
-        if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            displayOrientation = (cameraInfo.orientation + degrees) % 360;
-            displayOrientation = (360 - displayOrientation) % 360;
-        } else {
-            displayOrientation = (cameraInfo.orientation - degrees + 360) % 360;
+        if (cameraInfo.facing == android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK) {
+            degrees = 360 - degrees;
         }
-        return displayOrientation;
+        return (cameraInfo.orientation + degrees) % 360;
     }
 
     @Override

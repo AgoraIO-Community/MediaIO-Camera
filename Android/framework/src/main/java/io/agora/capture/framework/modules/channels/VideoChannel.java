@@ -13,6 +13,7 @@ import androidx.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.agora.capture.framework.gles.MatrixOperator;
 import io.agora.capture.framework.gles.ProgramTexture2d;
 import io.agora.capture.framework.gles.ProgramTextureOES;
 import io.agora.capture.framework.gles.core.EglCore;
@@ -22,7 +23,6 @@ import io.agora.capture.framework.modules.processors.RotateProcessor;
 import io.agora.capture.framework.modules.processors.WatermarkProcessor;
 import io.agora.capture.framework.modules.producers.IVideoProducer;
 import io.agora.capture.framework.util.LogUtil;
-import io.agora.capture.framework.util.MatrixOperator;
 import io.agora.capture.video.camera.Constant;
 import io.agora.capture.video.camera.VideoCaptureFrame;
 

@@ -22,6 +22,8 @@ public class VideoCaptureFrame {
      */
     public float[] textureTransform;
 
+    public float[] rotatedTextureTransform;
+
     /**
      * If the frames are from system texture, they
      * must contain the texture content in the

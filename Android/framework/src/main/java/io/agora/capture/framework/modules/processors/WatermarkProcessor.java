@@ -11,11 +11,13 @@ import androidx.annotation.NonNull;
 
 import java.nio.ByteBuffer;
 
+import io.agora.capture.framework.gles.MatrixOperator;
+import io.agora.capture.framework.gles.MatrixOperatorGL;
+import io.agora.capture.framework.gles.MatrixOperatorGraphics;
 import io.agora.capture.framework.gles.ProgramTexture2d;
 import io.agora.capture.framework.gles.ProgramTextureOES;
 import io.agora.capture.framework.gles.core.GlUtil;
 import io.agora.capture.framework.util.LogUtil;
-import io.agora.capture.framework.util.MatrixOperator;
 import io.agora.capture.video.camera.VideoCaptureFrame;
 
 public class WatermarkProcessor {
@@ -30,7 +32,8 @@ public class WatermarkProcessor {
     private int watermarkTexId;
     private float watermarkAlpha = 1.0f;
     private MatrixOperator watermarkMvp;
-    private final MatrixOperator textureMvp = new MatrixOperator(MatrixOperator.ScaleType.FitXY);
+    private MatrixOperator watermarkTex;
+    private final MatrixOperator textureMvp = new MatrixOperatorGL(MatrixOperator.ScaleType.FitXY);
 
     private final ProgramTexture2d programTexture2d;
     private final ProgramTextureOES programTextureOES;
@@ -68,14 +71,12 @@ public class WatermarkProcessor {
 
             textureMvp.update(desiredWidth, desiredHeight, desiredWidth, desiredHeight);
             textureMvp.setFlipH(frame.mirrored);
-            textureMvp.setFlipV(true);
-            textureMvp.setRotation(-1 * frame.rotation);
 
             // draw camera texture
             if (frame.format.getTexFormat() == GLES11Ext.GL_TEXTURE_EXTERNAL_OES) {
-                programTextureOES.drawFrame(frame.textureId, frame.textureTransform, textureMvp.getMatrix());
+                programTextureOES.drawFrame(frame.textureId, frame.rotatedTextureTransform, textureMvp.getFinalMatrix());
             } else {
-                programTexture2d.drawFrame(frame.textureId, frame.textureTransform, textureMvp.getMatrix());
+                programTexture2d.drawFrame(frame.textureId, frame.rotatedTextureTransform, textureMvp.getFinalMatrix());
             }
 
             watermarkMvp.update(desiredWidth, desiredHeight, watermarkRect.width(), watermarkRect.height());
@@ -89,7 +90,7 @@ public class WatermarkProcessor {
             }
 
             // draw watermark texture
-            programTexture2d.drawFrame(watermarkTexId, GlUtil.IDENTITY_MATRIX, watermarkMvp.getMatrix(), watermarkAlpha);
+            programTexture2d.drawFrame(watermarkTexId, watermarkTex.getFinalMatrix(), watermarkMvp.getFinalMatrix(), watermarkAlpha);
 
             if(outPixel){
                 frame.image = readRgbaImageData(desiredWidth, desiredHeight);
@@ -109,6 +110,7 @@ public class WatermarkProcessor {
             frame.format.setHeight(desiredHeight);
             frame.format.setTexFormat(GLES20.GL_TEXTURE_2D);
             frame.textureTransform = GlUtil.IDENTITY_MATRIX;
+            frame.rotatedTextureTransform = GlUtil.IDENTITY_MATRIX;
         }
 
 
@@ -146,12 +148,12 @@ public class WatermarkProcessor {
                 watermarkBitmap.recycle();
             }
             android.graphics.Matrix mx = new android.graphics.Matrix();
-            mx.setRotate(180);
-            mx.setScale(1, -1);
             this.watermarkBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), mx, true);
             Log.d("lq", "setWatermark: " + bitmap + "," + this.watermarkBitmap);
             watermarkRect = new Rect(0, 0, watermarkBitmap.getWidth(), watermarkBitmap.getHeight());
-            watermarkMvp = new MatrixOperator(scaleType);
+            watermarkMvp = new MatrixOperatorGL(scaleType);
+            watermarkTex = new MatrixOperatorGraphics(scaleType);
+            watermarkTex.setPreFlipV(true);
             this.onWatermarkCreateListener = listener;
             this.outPixel = outPixel;
             watermarkBitmapChange = true;
