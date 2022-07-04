@@ -89,6 +89,8 @@ public abstract class VideoCapture extends VideoProducer {
 
         void onCameraCaptureError(int error, String message);
 
+        void onCameraOpen();
+
         void onCameraClosed();
 
         FrameRateRange onSelectCameraFpsRange(List<FrameRateRange> supportFpsRange, FrameRateRange selectedRange);
@@ -153,6 +155,15 @@ public abstract class VideoCapture extends VideoProducer {
     public abstract void stopCaptureAndBlockUntilStopped();
 
     public abstract void deallocate(boolean disconnect);
+
+    // zoom api
+    public abstract boolean isZoomSupported();
+    public abstract int setZoom(float zoomValue);
+    public abstract float getMaxZoom();
+
+    // torch api
+    public abstract boolean isTorchSupported();
+    public abstract int setTorchMode(boolean isOn);
 
     /**
      * update preview orientation

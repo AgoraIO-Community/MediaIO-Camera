@@ -255,6 +255,45 @@ public class CameraVideoManager {
         }
     }
 
+    // zoom api
+    public boolean isZoomSupported(){
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.isZoomSupported();
+        }
+        return false;
+    }
+    public int setZoom(float zoomValue){
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.setZoom(zoomValue);
+        }
+        return -4;
+    }
+    public float getMaxZoom(){
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.getMaxZoom();
+        }
+        return -4;
+    }
+
+    // torch api
+    public boolean isTorchSupported(){
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.isTorchSupported();
+        }
+        return false;
+    }
+    public int setTorchMode(boolean isOn){
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.setTorchMode(isOn);
+        }
+        return -4;
+    }
+
     public IPreprocessor getPreprocessor() {
         checkAvailable();
         if (mCameraChannel != null) {
