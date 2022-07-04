@@ -19,6 +19,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.SeekBar;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -122,6 +123,11 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
+            public void onCameraOpen() {
+                runOnUiThread(() -> initCameraSettingView());
+            }
+
+            @Override
             public void onCameraClosed() {
 
             }
@@ -184,6 +190,47 @@ public class MainActivity extends AppCompatActivity {
         // Can attach other consumers here,
         // For example, rtc consumer or rtmp module
         mCameraVideoManager.startCapture();
+
+    }
+
+    private void initCameraSettingView() {
+        Switch torchSwitch = findViewById(R.id.switch_torch);
+        boolean torchSupported = mCameraVideoManager.isTorchSupported();
+        torchSwitch.setVisibility(torchSupported ? View.VISIBLE: View.INVISIBLE);
+        if (torchSupported) {
+            torchSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                mCameraVideoManager.setTorchMode(isChecked);
+            });
+        }
+
+        View zoomLayout = findViewById(R.id.ll_zoom);
+        SeekBar zoomSeek = findViewById(R.id.seek_zoom);
+        TextView zoomValueTv = findViewById(R.id.tv_zoom_value);
+        boolean zoomSupported = mCameraVideoManager.isZoomSupported();
+        zoomLayout.setVisibility(zoomSupported? View.VISIBLE: View.GONE);
+        if(zoomSupported){
+            float maxZoom = mCameraVideoManager.getMaxZoom();
+            zoomSeek.setMax(100);
+            zoomSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+                }
+
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {
+
+                }
+
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+                    int progress = seekBar.getProgress();
+                    float zoomValue = progress * 1.0f / 100 * maxZoom;
+                    zoomValueTv.setText(zoomValue + "");
+                    mCameraVideoManager.setZoom(zoomValue);
+                }
+            });
+        }
     }
 
     private void switchVideoLayout() {
