@@ -104,6 +104,13 @@ public class CameraVideoManager {
         mCameraChannel.setFacing(facing);
     }
 
+    public void setPreprocessor(IPreprocessor preprocessor) {
+        checkAvailable();
+        if (mCameraChannel != null) {
+            mCameraChannel.setPreprocessor(preprocessor);
+        }
+    }
+
     public void enablePreprocessor(boolean enabled) {
         checkAvailable();
         if (mCameraChannel != null) {
