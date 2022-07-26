@@ -216,7 +216,7 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
         int surfaceWidth = onMeasuredWidth();
         int surfaceHeight = onMeasuredHeight();
         GLES20.glViewport(0, 0, surfaceWidth, surfaceHeight);
-        GLES20.glClearColor(0, 0, 0, 1.0f);
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT| GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_STENCIL_BUFFER_BIT);
 
         int desiredWidth = frame.format.getWidth();
         int desiredHeight = frame.format.getHeight();

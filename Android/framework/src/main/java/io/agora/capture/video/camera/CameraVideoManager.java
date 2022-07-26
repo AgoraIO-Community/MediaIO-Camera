@@ -7,7 +7,6 @@ import android.view.TextureView;
 
 import androidx.annotation.Nullable;
 
-import io.agora.capture.framework.gles.MatrixOperator;
 import io.agora.capture.framework.modules.channels.ChannelManager;
 import io.agora.capture.framework.modules.consumers.IVideoConsumer;
 import io.agora.capture.framework.modules.consumers.SurfaceViewConsumer;
@@ -15,6 +14,7 @@ import io.agora.capture.framework.modules.consumers.TextureViewConsumer;
 import io.agora.capture.framework.modules.processors.IPreprocessor;
 import io.agora.capture.framework.modules.processors.WatermarkProcessor;
 import io.agora.capture.framework.util.LogUtil;
+import io.agora.capture.framework.util.MatrixOperator;
 
 /**
  * VideoManager is designed as the up-level encapsulation of
@@ -102,6 +102,13 @@ public class CameraVideoManager {
         mCameraChannel = (CameraVideoChannel)
                 videoModule.getVideoChannel(CHANNEL_ID);
         mCameraChannel.setFacing(facing);
+    }
+
+    public void setPreprocessor(IPreprocessor preprocessor) {
+        checkAvailable();
+        if (mCameraChannel != null) {
+            mCameraChannel.setPreprocessor(preprocessor);
+        }
     }
 
     public void enablePreprocessor(boolean enabled) {
@@ -255,6 +262,45 @@ public class CameraVideoManager {
         }
     }
 
+    // zoom api
+    public boolean isZoomSupported(){
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.isZoomSupported();
+        }
+        return false;
+    }
+    public int setZoom(float zoomValue){
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.setZoom(zoomValue);
+        }
+        return -4;
+    }
+    public float getMaxZoom(){
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.getMaxZoom();
+        }
+        return -4;
+    }
+
+    // torch api
+    public boolean isTorchSupported(){
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.isTorchSupported();
+        }
+        return false;
+    }
+    public int setTorchMode(boolean isOn){
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.setTorchMode(isOn);
+        }
+        return -4;
+    }
+
     public IPreprocessor getPreprocessor() {
         checkAvailable();
         if (mCameraChannel != null) {
@@ -271,41 +317,61 @@ public class CameraVideoManager {
         }
     }
 
-    public void setWaterMark(@Nullable Bitmap waterMarkBitmap) {
-        checkAvailable();
-        setWaterMark(waterMarkBitmap, MatrixOperator.ScaleType.CenterCrop, null);
-    }
-
-
     @Nullable
     public Bitmap getWaterMark() {
         checkAvailable();
         if (mCameraChannel != null) {
-            return mCameraChannel.getWatermarkBitmap();
+            WatermarkProcessor watermarkProcessor = mCameraChannel.getWatermarkProcessor();
+            if(watermarkProcessor != null){
+                return watermarkProcessor.getWatermarkBitmap();
+            }
+
         }
         return null;
     }
 
-    public void setWaterMark(@Nullable Bitmap waterMarkBitmap, @MatrixOperator.ScaleType int scaleType, WatermarkProcessor.OnWatermarkCreateListener listener) {
+    public MatrixOperator setWaterMark(@Nullable Bitmap waterMarkBitmap, WatermarkConfig config) {
         checkAvailable();
         if (mCameraChannel != null) {
-            mCameraChannel.setWatermark(waterMarkBitmap, scaleType, listener);
+            WatermarkProcessor watermarkProcessor = mCameraChannel.getWatermarkProcessor();
+            if(watermarkProcessor != null){
+                watermarkProcessor.setOutSize(config.outWidth, config.outHeight);
+                watermarkProcessor.setOriginTexScaleType(config.originTexScaleType);
+                return watermarkProcessor.setWatermarkBitmap(waterMarkBitmap, config.watermarkWidth, config.watermarkHeight, config.watermarkScaleType);
+            }
         }
+        return null;
     }
 
     public void setWaterMarkAlpha(float waterMarkAlpha) {
         checkAvailable();
         if (mCameraChannel != null) {
-            mCameraChannel.setWatermarkAlpha(waterMarkAlpha);
+            WatermarkProcessor watermarkProcessor = mCameraChannel.getWatermarkProcessor();
+            if(watermarkProcessor != null){
+                watermarkProcessor.setWatermarkAlpha(waterMarkAlpha);
+            }
         }
     }
 
     public float getWatermarkAlpha(){
         checkAvailable();
         if (mCameraChannel != null) {
-            return mCameraChannel.getWatermarkAlpha();
+            WatermarkProcessor watermarkProcessor = mCameraChannel.getWatermarkProcessor();
+            if(watermarkProcessor != null){
+                return watermarkProcessor.getWatermarkAlpha();
+            }
         }
         return 1f;
+    }
+
+    public void cleanWatermark(){
+        checkAvailable();
+        if (mCameraChannel != null) {
+            WatermarkProcessor watermarkProcessor = mCameraChannel.getWatermarkProcessor();
+            if(watermarkProcessor != null){
+                watermarkProcessor.cleanWatermark();
+            }
+        }
     }
 
     public void setCameraStateListener(VideoCapture.VideoCaptureStateListener listener) {

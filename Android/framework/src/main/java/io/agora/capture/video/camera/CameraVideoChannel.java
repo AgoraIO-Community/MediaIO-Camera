@@ -95,6 +95,40 @@ public class CameraVideoChannel extends VideoChannel {
         }
     }
 
+    // zoom api
+    public boolean isZoomSupported(){
+        if(mCapturedStarted){
+            return mVideoCapture.isZoomSupported();
+        }
+        return false;
+    }
+    public int setZoom(float zoomValue){
+        if(mCapturedStarted){
+            return mVideoCapture.setZoom(zoomValue);
+        }
+        return -3;
+    }
+    public float getMaxZoom(){
+        if(mCapturedStarted){
+            return mVideoCapture.getMaxZoom();
+        }
+        return -3;
+    }
+
+    // torch api
+    public boolean isTorchSupported(){
+        if(mCapturedStarted){
+            return mVideoCapture.isTorchSupported();
+        }
+        return false;
+    }
+    public int setTorchMode(boolean isOn){
+        if(mCapturedStarted){
+            return mVideoCapture.setTorchMode(isOn);
+        }
+        return -3;
+    }
+
     private void switchCameraFacing() {
         if (mFacing == Constant.CAMERA_FACING_FRONT) {
             mFacing = Constant.CAMERA_FACING_BACK;

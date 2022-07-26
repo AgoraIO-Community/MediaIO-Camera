@@ -1,19 +1,15 @@
 package io.agora.capture.framework.modules.channels;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.opengl.EGLContext;
 import android.opengl.EGLSurface;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.text.TextUtils;
 
-import androidx.annotation.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
 
-import io.agora.capture.framework.gles.MatrixOperator;
 import io.agora.capture.framework.gles.ProgramTexture2d;
 import io.agora.capture.framework.gles.ProgramTextureOES;
 import io.agora.capture.framework.gles.core.EglCore;
@@ -23,6 +19,7 @@ import io.agora.capture.framework.modules.processors.RotateProcessor;
 import io.agora.capture.framework.modules.processors.WatermarkProcessor;
 import io.agora.capture.framework.modules.producers.IVideoProducer;
 import io.agora.capture.framework.util.LogUtil;
+import io.agora.capture.framework.util.ThreadUtils;
 import io.agora.capture.video.camera.Constant;
 import io.agora.capture.video.camera.VideoCaptureFrame;
 
@@ -37,6 +34,7 @@ public class VideoChannel extends HandlerThread {
     private List<IVideoConsumer> mOffScreenConsumers = new ArrayList<>();
     private int mOnScreenConsumerMirrorMode = Constant.MIRROR_MODE_AUTO;
     private IPreprocessor mPreprocessor;
+    private volatile boolean isPreprocessorInitialized = false;
 
     // Used to rotate the image to normal direction according
     // to texture transformation matrix and possibly surface
@@ -57,8 +55,17 @@ public class VideoChannel extends HandlerThread {
         mContext.setContext(context);
     }
 
-    void setPreprocessor(IPreprocessor preprocessor) {
-        mPreprocessor = preprocessor;
+    public void setPreprocessor(IPreprocessor preprocessor) {
+        if(mHandler == null){
+            mPreprocessor = preprocessor;
+            isPreprocessorInitialized = false;
+        }else{
+            ThreadUtils.invokeAtFrontUninterruptibly(mHandler, () -> {
+                releasePreprocessor();
+                mPreprocessor = preprocessor;
+                isPreprocessorInitialized = false;
+            });
+        }
     }
 
     @Override
@@ -71,7 +78,6 @@ public class VideoChannel extends HandlerThread {
     private void init() {
         LogUtil.i(TAG, "channel opengl init");
         initOpenGL();
-        initPreprocessor();
         initRotateProcessor();
         initWatermarkProcessor();
         onChannelContextCreated();
@@ -91,19 +97,20 @@ public class VideoChannel extends HandlerThread {
         mContext.setProgramOES(new ProgramTextureOES());
     }
 
-    private void initPreprocessor() {
-        if (mPreprocessor != null) {
+    private void mayInitPreprocessor() {
+        if (mPreprocessor != null && !isPreprocessorInitialized) {
             mPreprocessor.initPreprocessor();
+            isPreprocessorInitialized = true;
         }
     }
 
     private void initRotateProcessor() {
-//        mRotateProcessor = new RotateProcessor();
-//        mRotateProcessor.init(mContext);
+        mRotateProcessor = new RotateProcessor();
+        mRotateProcessor.init(mContext);
     }
 
     private void initWatermarkProcessor() {
-        if (mWatermarkProcessor == null) {
+        if(mWatermarkProcessor == null){
             mWatermarkProcessor = new WatermarkProcessor();
         }
     }
@@ -224,9 +231,8 @@ public class VideoChannel extends HandlerThread {
 
     /**
      * Attach a consumer to the channel
-     *
      * @param consumer consumer to be attached
-     * @param type     on-screen or off-screen
+     * @param type on-screen or off-screen
      * @see io.agora.capture.framework.modules.consumers.IVideoConsumer
      */
     public void connectConsumer(final IVideoConsumer consumer, int type) {
@@ -281,45 +287,17 @@ public class VideoChannel extends HandlerThread {
         });
     }
 
-    public void setWatermark(@Nullable Bitmap watermarkBitmap, @MatrixOperator.ScaleType int scaleType, WatermarkProcessor.OnWatermarkCreateListener listener) {
-        this.setWatermark(watermarkBitmap, scaleType, false, listener);
-    }
-
-    public void setWatermark(@Nullable Bitmap watermarkBitmap, @MatrixOperator.ScaleType int scaleType, boolean outPixel, WatermarkProcessor.OnWatermarkCreateListener listener) {
-        if (mWatermarkProcessor != null) {
-            if (watermarkBitmap != null) {
-                mWatermarkProcessor.setWatermarkBitmap(watermarkBitmap, scaleType, outPixel, listener);
-            } else {
-                mHandler.post(() -> mWatermarkProcessor.cleanWatermark());
-            }
-        }
-    }
-
-    @Nullable
-    public Bitmap getWatermarkBitmap() {
-        if (mWatermarkProcessor != null) {
-            return mWatermarkProcessor.getWatermarkBitmap();
-        }
-        return null;
-    }
-
-    public void setWatermarkAlpha(float watermarkAlpha) {
-        if (mWatermarkProcessor != null) {
-            mWatermarkProcessor.setWatermarkAlpha(watermarkAlpha);
-        }
-    }
-
-    public float getWatermarkAlpha() {
-        if (mWatermarkProcessor != null) {
-            return mWatermarkProcessor.getWatermarkAlpha();
-        }
-        return 1.0f;
+    public WatermarkProcessor getWatermarkProcessor() {
+        return mWatermarkProcessor;
     }
 
     public void disconnectConsumer(IVideoConsumer consumer) {
+        final Handler handler = mHandler;
+        if (handler == null) {
+            return;
+        }
         checkThreadRunningState();
-
-        mHandler.post(() -> {
+        handler.post(() -> {
             if (mOnScreenConsumers.contains(consumer)) {
                 consumer.recycle();
                 mOnScreenConsumers.remove(consumer);
@@ -348,6 +326,8 @@ public class VideoChannel extends HandlerThread {
 
     public void pushVideoFrame(VideoCaptureFrame frame) {
         checkThreadRunningState();
+
+        mayInitPreprocessor();
 
         if (mPreprocessor != null) {
             frame = mPreprocessor.onPreProcessFrame(frame, getChannelContext());

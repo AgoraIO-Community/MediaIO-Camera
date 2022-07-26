@@ -495,6 +495,31 @@ public class VideoCaptureCamera2 extends VideoCapture {
     }
 
     @Override
+    public boolean isZoomSupported() {
+        return false;
+    }
+
+    @Override
+    public int setZoom(float zoomValue) {
+        return 0;
+    }
+
+    @Override
+    public float getMaxZoom() {
+        return 0;
+    }
+
+    @Override
+    public boolean isTorchSupported() {
+        return false;
+    }
+
+    @Override
+    public int setTorchMode(boolean isOn) {
+        return 0;
+    }
+
+    @Override
     void updatePreviewOrientation() {
 
     }

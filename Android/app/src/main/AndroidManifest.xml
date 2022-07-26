@@ -4,7 +4,10 @@
     package="io.agora.videocapture">
 
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.FLASHLIGHT" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+
+    <uses-feature android:name="android.hardware.camera.autofocus"/>
 
     <application
         android:icon="@mipmap/ic_launcher"
