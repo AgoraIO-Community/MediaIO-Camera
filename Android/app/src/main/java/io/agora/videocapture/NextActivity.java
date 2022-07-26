@@ -1,11 +1,9 @@
 package io.agora.videocapture;
 
-import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.TextureView;
 import android.widget.FrameLayout;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import io.agora.capture.video.camera.CameraVideoManager;
@@ -30,12 +28,6 @@ public class NextActivity extends AppCompatActivity {
         mCameraVideoManager.setLocalPreview(textureView);
         videoContainer.removeAllViews();
         videoContainer.addView(textureView);
-    }
-
-    @Override
-    public void onConfigurationChanged(@NonNull Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        mCameraVideoManager.updatePreviewOrientation();
     }
 
     @Override

@@ -10,6 +10,7 @@ import android.os.HandlerThread;
 
 import io.agora.capture.framework.gles.MatrixOperator;
 import io.agora.capture.framework.gles.MatrixOperatorGL;
+import io.agora.capture.framework.gles.MatrixOperatorGraphics;
 import io.agora.capture.framework.gles.ProgramTexture2d;
 import io.agora.capture.framework.gles.ProgramTextureOES;
 import io.agora.capture.framework.gles.core.EglCore;
@@ -33,6 +34,7 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
     volatile boolean surfaceDestroyed;
 
     private final MatrixOperator mMVPMatrix;
+    private final MatrixOperator mTextureMatrix;
 
     private final boolean uniqueGLEnv;
     private volatile boolean uniqueIsRunning = false;
@@ -46,6 +48,7 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
     protected BaseWindowConsumer(VideoModule videoModule, boolean uniqueGLEnv, @MatrixOperator.ScaleType int scaleType) {
         this.videoModule = videoModule;
         mMVPMatrix = new MatrixOperatorGL(scaleType);
+        mTextureMatrix = new MatrixOperatorGraphics(scaleType);
         this.uniqueGLEnv = uniqueGLEnv;
     }
 
@@ -235,18 +238,22 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
             mMVPMatrix.setFlipH(false);
         }
 
+        mTextureMatrix.setTransformMatrix(frame.textureTransform);
+        mTextureMatrix.setPreFlipH(frame.mirrored);
+        mTextureMatrix.setRotation(frame.rotation);
+
         if (frame.format.getTexFormat() == GLES20.GL_TEXTURE_2D) {
             if (programTexture2d == null) {
                 uniqueProgram2d = new ProgramTexture2d();
                 programTexture2d = uniqueProgram2d;
             }
-            programTexture2d.drawFrame(frame.textureId, frame.rotatedTextureTransform, mMVPMatrix.getFinalMatrix());
+            programTexture2d.drawFrame(frame.textureId, mTextureMatrix.getFinalMatrix(), mMVPMatrix.getFinalMatrix());
         } else if (frame.format.getTexFormat() == GLES11Ext.GL_TEXTURE_EXTERNAL_OES) {
             if (programTextureOES == null) {
                 uniqueProgramOES = new ProgramTextureOES();
                 programTextureOES = uniqueProgramOES;
             }
-            programTextureOES.drawFrame(frame.textureId, frame.rotatedTextureTransform, mMVPMatrix.getFinalMatrix());
+            programTextureOES.drawFrame(frame.textureId, mTextureMatrix.getFinalMatrix(), mMVPMatrix.getFinalMatrix());
         }
 
         if (drawingEglSurface != null) {

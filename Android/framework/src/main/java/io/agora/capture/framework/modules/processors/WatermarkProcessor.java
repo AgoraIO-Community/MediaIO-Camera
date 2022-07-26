@@ -3,6 +3,7 @@ package io.agora.capture.framework.modules.processors;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -13,11 +14,13 @@ import androidx.annotation.NonNull;
 
 import java.nio.ByteBuffer;
 
+import io.agora.capture.framework.gles.MatrixOperator;
+import io.agora.capture.framework.gles.MatrixOperatorGL;
+import io.agora.capture.framework.gles.MatrixOperatorGraphics;
 import io.agora.capture.framework.gles.ProgramTexture2d;
 import io.agora.capture.framework.gles.ProgramTextureOES;
 import io.agora.capture.framework.gles.core.GlUtil;
 import io.agora.capture.framework.util.LogUtil;
-import io.agora.capture.framework.util.MatrixOperator;
 import io.agora.capture.video.camera.VideoCaptureFrame;
 
 public class WatermarkProcessor {
@@ -29,16 +32,18 @@ public class WatermarkProcessor {
     private int outFboId;
     private int outTexId;
     private int outWidth, outHeight;
-    private boolean resetFBO;
+    private volatile boolean resetFBO;
 
-    private final MatrixOperator originTexMvp = new MatrixOperator(MatrixOperator.ScaleType.CenterCrop);
+    private final MatrixOperator originTexMvp = new MatrixOperatorGL(MatrixOperator.ScaleType.CenterCrop);
+    private final MatrixOperator originTexTrans = new MatrixOperatorGraphics(MatrixOperator.ScaleType.CenterCrop);
 
     private final Object watermarkLock = new Object();
     private Bitmap watermarkBitmap;
     private boolean watermarkBitmapChange = false;
     private int watermarkTexId;
     private float watermarkAlpha = 1.0f;
-    private final MatrixOperator watermarkMvp = new MatrixOperator(MatrixOperator.ScaleType.CenterCrop);
+    private MatrixOperator watermarkMvp = new MatrixOperatorGL(MatrixOperator.ScaleType.CenterCrop);
+
 
     public WatermarkProcessor() {
         programTexture2d = new ProgramTexture2d();
@@ -89,21 +94,29 @@ public class WatermarkProcessor {
             originTexHeight = frame.format.getWidth();
         }
         originTexMvp.update(outWidth, outHeight, originTexWidth, originTexHeight);
-        originTexMvp.setMirror(frame.mirrored);
+        originTexMvp.setFlipH(frame.mirrored);
+
+        originTexTrans.setTransformMatrix(frame.textureTransform);
+        originTexTrans.setPreFlipH(frame.mirrored);
+        originTexTrans.setRotation(frame.rotation);
+
         if (frame.format.getTexFormat() == GLES11Ext.GL_TEXTURE_EXTERNAL_OES) {
-            programTextureOES.drawFrame(frame.textureId, frame.textureTransform, originTexMvp.getMatrix());
+            programTextureOES.drawFrame(frame.textureId, originTexTrans.getFinalMatrix(), originTexMvp.getFinalMatrix());
         } else {
-            programTexture2d.drawFrame(frame.textureId, frame.textureTransform, originTexMvp.getMatrix());
+            programTexture2d.drawFrame(frame.textureId, originTexTrans.getFinalMatrix(), originTexMvp.getFinalMatrix());
         }
 
         // draw watermark texture
-        programTexture2d.drawFrame(watermarkTexId, GlUtil.IDENTITY_MATRIX, watermarkMvp.getMatrix(), watermarkAlpha);
+        programTexture2d.drawFrame(watermarkTexId, GlUtil.IDENTITY_MATRIX, watermarkMvp.getFinalMatrix(), watermarkAlpha);
 
         GLES20.glDisable(GLES20.GL_BLEND);
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
 
+        frame.image = null;
+        frame.format.setPixelFormat(ImageFormat.UNKNOWN);
         frame.textureId = outTexId;
         frame.rotation = 0;
+        frame.mirrored = false;
         frame.format.setWidth(outWidth);
         frame.format.setHeight(outHeight);
         frame.format.setTexFormat(GLES20.GL_TEXTURE_2D);
@@ -186,6 +199,7 @@ public class WatermarkProcessor {
             scaleBitmap.recycle();
 
             synchronized (watermarkLock){
+                watermarkMvp = new MatrixOperatorGL(scaleType);
                 watermarkBitmap = rotatedBitmap;
                 watermarkBitmapChange = true;
             }
