@@ -165,10 +165,6 @@ public abstract class VideoCapture extends VideoProducer {
     public abstract boolean isTorchSupported();
     public abstract int setTorchMode(boolean isOn);
 
-    /**
-     * update preview orientation
-     */
-    abstract void updatePreviewOrientation();
 
     void deallocate() {
         if (fpsUtil != null) {
@@ -236,10 +232,6 @@ public abstract class VideoCapture extends VideoProducer {
     }
 
     void onFrameAvailable() {
-        // The images from front system camera are mirrored by default.
-        int facing = cameraSteady ? curCameraFacing : lastCameraFacing;
-        boolean mirrored = (facing == Constant.CAMERA_FACING_FRONT);
-
         VideoCaptureFrame frame = new VideoCaptureFrame(
                 // The format may be changed during processing.
                 // Create a copy of the format config to avoid

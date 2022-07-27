@@ -12,13 +12,23 @@ public class VideoCaptureFormat {
     private int mFrameRate;
     private int mPixelFormat;
     private int mTexFormat;
+    private int mCameraFacing;
 
-    VideoCaptureFormat(int width, int height, int frameRate, int pixelFormat, int texFormat) {
+    VideoCaptureFormat(int cameraFacing, int width, int height, int frameRate, int pixelFormat, int texFormat) {
+        mCameraFacing = cameraFacing;
         mWidth = width;
         mHeight = height;
         mFrameRate = frameRate;
         mPixelFormat = pixelFormat;
         mTexFormat = texFormat;
+    }
+
+    public int getCameraFacing() {
+        return mCameraFacing;
+    }
+
+    public void setCameraFacing(int cameraFacing) {
+        this.mCameraFacing = cameraFacing;
     }
 
     public int getWidth() {
@@ -60,14 +70,15 @@ public class VideoCaptureFormat {
     public @NonNull String toString() {
         return "VideoCaptureFormat{" +
                 "mFormat=" + mPixelFormat +
-                "mFrameRate=" + mFrameRate +
+                ", mCameraFacing=" + mCameraFacing +
+                ", mFrameRate=" + mFrameRate +
                 ", mWidth=" + mWidth +
                 ", mHeight=" + mHeight +
                 '}';
     }
 
     public VideoCaptureFormat copy() {
-        return new VideoCaptureFormat(
+        return new VideoCaptureFormat(mCameraFacing,
                 mWidth, mHeight, mFrameRate, mPixelFormat, mTexFormat);
     }
 }

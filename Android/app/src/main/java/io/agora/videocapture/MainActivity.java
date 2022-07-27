@@ -5,10 +5,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.ImageDecoder;
-import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -33,7 +31,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.List;
 
-import io.agora.capture.framework.util.MatrixOperator;
+import io.agora.capture.framework.gles.MatrixOperator;
 import io.agora.capture.video.camera.CameraVideoManager;
 import io.agora.capture.video.camera.Constant;
 import io.agora.capture.video.camera.VideoCapture;
@@ -104,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
         // needs to load resource files from local storage.
         // The loading may block the video rendering for a
         // little while.
-        mCameraVideoManager = CameraVideoManager.create(this, null, Camera.CameraInfo.CAMERA_FACING_FRONT, true);
+        mCameraVideoManager = CameraVideoManager.create(this, null, Constant.CAMERA_FACING_FRONT, true);
 
         mCameraVideoManager.setCameraStateListener(new VideoCapture.VideoCaptureStateListener() {
             @Override
@@ -143,8 +141,8 @@ public class MainActivity extends AppCompatActivity {
         // Set camera capture configuration
         mCameraVideoManager.setPictureSize(640, 480);
         mCameraVideoManager.setFrameRate(24);
-        mCameraVideoManager.setFacing(Constant.CAMERA_FACING_FRONT);
-        mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
+        //mCameraVideoManager.setFacing(Constant.CAMERA_FACING_FRONT);
+        //mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
 
         // The preview surface is actually considered as
         // an on-screen consumer under the hood.
@@ -253,9 +251,6 @@ public class MainActivity extends AppCompatActivity {
         if (mCameraVideoManager != null) {
             mIsMirrored = !mIsMirrored;
             mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
-            if(watermarkMatrixOperator != null){
-                watermarkMatrixOperator.setMirror(mIsMirrored);
-            }
         }
     }
 
@@ -293,16 +288,7 @@ public class MainActivity extends AppCompatActivity {
             watermarkMatrixOperator = mCameraVideoManager.setWaterMark(watermarkBitmap, config);
             watermarkBitmap.recycle();
 
-            updateSeekbar(true);
-        }
-
-    }
-
-    @Override
-    public void onConfigurationChanged(@NonNull Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        if (mCameraVideoManager != null) {
-            mCameraVideoManager.updatePreviewOrientation();
+            updateWatermarkLayout(true);
         }
 
     }
@@ -311,10 +297,10 @@ public class MainActivity extends AppCompatActivity {
         mCameraVideoManager.cleanWatermark();
         watermarkMatrixOperator = null;
         // updateUI
-        updateSeekbar(false);
+        updateWatermarkLayout(false);
     }
 
-    private void updateSeekbar(boolean visible) {
+    private void updateWatermarkLayout(boolean visible) {
         if(watermarkMatrixOperator == null){
             visible = false;
         }
@@ -439,6 +425,47 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // rotation
+        SeekBar sliderWatermarkRotation = findViewById(R.id.slider_watermark_rotate);
+        TextView sliderWatermarkRotationValue = findViewById(R.id.slider_watermark_rotate_value);
+        sliderWatermarkRotation.setProgress((int) (watermarkMatrixOperator.getRotation() * (100.f / 360)));
+        sliderWatermarkRotationValue.setText(watermarkMatrixOperator.getRotation() + "");
+        sliderWatermarkRotation.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    float rotation = progress * (360.f / 100) ;
+                    watermarkMatrixOperator.setRotation(-rotation);
+                    sliderWatermarkRotationValue.setText(-rotation + "");
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        // FlipH
+        Switch switchFlipH = findViewById(R.id.switch_flip_h);
+        switchFlipH.setChecked(watermarkMatrixOperator.isFlipH());
+        switchFlipH.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            watermarkMatrixOperator.setFlipH(isChecked);
+        });
+
+        // FlipV
+        Switch switchFlipV = findViewById(R.id.switch_flip_v);
+        switchFlipV.setChecked(watermarkMatrixOperator.isFlipV());
+        switchFlipV.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            watermarkMatrixOperator.setFlipV(isChecked);
+        });
+
+        // scaleType
         findViewById(R.id.btn_center_crop).setOnClickListener(v -> {
             watermarkMatrixOperator.setScaleType(MatrixOperator.ScaleType.CenterCrop);
         });

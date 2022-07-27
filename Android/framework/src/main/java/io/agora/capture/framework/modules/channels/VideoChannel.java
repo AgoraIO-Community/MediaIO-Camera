@@ -306,6 +306,9 @@ public class VideoChannel extends HandlerThread {
                 consumer.recycle();
                 mOffScreenConsumers.remove(consumer);
                 LogUtil.d(TAG, "Off-screen consumer disconnected:" + consumer);
+            } else {
+                removeSameConsumers(mOffScreenConsumers,
+                        consumer.getDrawingTarget(), consumer.getId());
             }
 
             if (mOnScreenConsumers.isEmpty() &&

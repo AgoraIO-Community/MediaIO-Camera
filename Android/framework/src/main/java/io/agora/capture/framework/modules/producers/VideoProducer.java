@@ -35,6 +35,7 @@ public abstract class VideoProducer implements IVideoProducer {
                 frame.surfaceTexture.updateTexImage();
                 if (frame.textureTransform == null) frame.textureTransform = new float[16];
                 frame.surfaceTexture.getTransformMatrix(frame.textureTransform);
+
             } catch (Exception e) {
                 e.printStackTrace();
                 return;
