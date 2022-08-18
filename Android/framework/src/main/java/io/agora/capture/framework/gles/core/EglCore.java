@@ -23,6 +23,7 @@ import android.opengl.EGLContext;
 import android.opengl.EGLDisplay;
 import android.opengl.EGLExt;
 import android.opengl.EGLSurface;
+import android.util.Log;
 import android.view.Surface;
 
 import io.agora.capture.framework.util.LogUtil;
@@ -60,10 +61,14 @@ public final class EglCore {
     /**
      * Prepares EGL display and context.
      * <p>
-     * Equivalent to EglCore(null, 0).
+     * Equivalent to EglCore(null, FLAG_TRY_GLES3).
      */
     public EglCore() {
-        this(null, 0);
+        this(null);
+    }
+
+    public EglCore(EGLContext sharedContext){
+        this(sharedContext, FLAG_TRY_GLES3);
     }
 
     /**
@@ -94,7 +99,7 @@ public final class EglCore {
 
         // Try to get a GLES3 context, if requested.
         if ((flags & FLAG_TRY_GLES3) != 0) {
-            //Log.d(TAG, "Trying GLES 3");
+            Log.d(TAG, "Trying GLES 3");
             EGLConfig config = getConfig(flags, 3);
             if (config != null) {
                 int[] attrib3_list = {
@@ -105,7 +110,7 @@ public final class EglCore {
                         attrib3_list, 0);
 
                 if (EGL14.eglGetError() == EGL14.EGL_SUCCESS) {
-                    //Log.d(TAG, "Got GLES 3 config");
+                    Log.d(TAG, "Got GLES 3 config");
                     mEGLConfig = config;
                     mEGLContext = context;
                     mGlVersion = 3;
@@ -153,10 +158,10 @@ public final class EglCore {
         // doesn't really help.  It can also lead to a huge performance hit on glReadPixels()
         // when reading into a GL_RGBA buffer.
         int[] attribList = {
-                EGL14.EGL_RED_SIZE, 8,
-                EGL14.EGL_GREEN_SIZE, 8,
-                EGL14.EGL_BLUE_SIZE, 8,
-                EGL14.EGL_ALPHA_SIZE, 8,
+                EGL14.EGL_RED_SIZE, 5,
+                EGL14.EGL_GREEN_SIZE, 6,
+                EGL14.EGL_BLUE_SIZE, 5,
+                //EGL14.EGL_ALPHA_SIZE, 8,
                 //EGL14.EGL_DEPTH_SIZE, 16,
                 //EGL14.EGL_STENCIL_SIZE, 8,
                 EGL14.EGL_RENDERABLE_TYPE, renderableType,

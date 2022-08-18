@@ -19,7 +19,7 @@ public class SurfaceViewConsumer extends BaseWindowConsumer implements SurfaceHo
     private int mHeight;
 
     public SurfaceViewConsumer(SurfaceView surfaceView, @MatrixOperator.ScaleType int scaleType) {
-        super(VideoModule.instance(), true, scaleType);
+        super(VideoModule.instance(), false, scaleType);
         mSurfaceView = surfaceView;
     }
 

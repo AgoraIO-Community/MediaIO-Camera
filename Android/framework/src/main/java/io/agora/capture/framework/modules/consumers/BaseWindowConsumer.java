@@ -117,7 +117,7 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
                 if(uniqueIsQuit){
                     return;
                 }
-                uniqueEglCore = new EglCore(shareContext, 0);
+                uniqueEglCore = new EglCore(shareContext);
                 uniqueIsRunning = true;
                 super.run();
                 uniqueIsRunning = false;
@@ -140,7 +140,7 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
 
         runOnUniqueThread(() -> {
             if (uniqueIsRunning) {
-                uniqueEglCore = new EglCore(shareContext, 0);
+                uniqueEglCore = new EglCore(shareContext);
             }
         });
     }
