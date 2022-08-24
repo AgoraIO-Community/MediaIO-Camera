@@ -88,12 +88,11 @@ AGM_FRAGMENT_SHADER_OUT
   float _oldHeightRatio;
 }
 
-
 - (void)dealloc {
   glDeleteProgram(_i420Program);
   glDeleteProgram(_nv12Program);
-  glDeleteBuffers(1, &_vertexBuffer);
-  glDeleteVertexArrays(1, &_vertexArray);
+//    glDeleteBuffers(1, &_vertexBuffer);
+    glDeleteVertexArrays(1, &_vertexArray);
 }
 
 - (BOOL)createAndSetupI420Program {
@@ -238,7 +237,7 @@ AGM_FRAGMENT_SHADER_OUT
   }
 
   glUseProgram(_nv12Program);
-
+    
   glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + kYTextureUnit));
   glBindTexture(GL_TEXTURE_2D, yPlane);
 
@@ -264,13 +263,13 @@ AGM_FRAGMENT_SHADER_OUT
         NSLog(@"Failed to setup RGBA shader");
         return;
     }
-    
     glUseProgram(_rgbaProgram);
     glActiveTexture(GL_TEXTURE4);
     glBindTexture(GL_TEXTURE_2D, rgbaPlane);
     
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     
+    glDisableVertexAttribArray(_rgbaProgram);
 }
 
 
