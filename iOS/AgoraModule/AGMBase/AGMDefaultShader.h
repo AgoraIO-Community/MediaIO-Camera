@@ -13,6 +13,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface AGMDefaultShader : NSObject <AGMVideoViewShading>
 
+- (void)deleteBuffer;
+
 @end
 
 NS_ASSUME_NONNULL_END
