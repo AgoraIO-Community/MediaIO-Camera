@@ -73,7 +73,7 @@ AGM_FRAGMENT_SHADER_OUT
 " }\n";
 
 
-
+static int releaseCount = 0;
 @implementation AGMDefaultShader {
     GLuint _vertexBuffer;
     GLuint _vertexArray;
@@ -88,9 +88,20 @@ AGM_FRAGMENT_SHADER_OUT
     float _oldHeightRatio;
 }
 
+- (instancetype)init {
+    if (self = [super init]) {
+        releaseCount += 1;
+    }
+    return self;
+}
+
 - (void)dealloc {
     glDeleteProgram(_i420Program);
     glDeleteProgram(_nv12Program);
+    releaseCount -= 1;
+    if (releaseCount <= 0) {
+        [self deleteBuffer];
+    }
 }
 
 - (void)deleteBuffer {

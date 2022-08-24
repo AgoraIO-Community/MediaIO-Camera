@@ -70,8 +70,6 @@
 
 @end
 
-
-static int releaseCount = 0;
 @interface AGMEAGLVideoView () <GLKViewDelegate>
 // |videoFrame| is set when we receive a frame from a worker thread and is read
 // from the display link callback so atomicity is required.
@@ -112,7 +110,6 @@ static int releaseCount = 0;
 - (instancetype)initWithFrame:(CGRect)frame shader:(id<AGMVideoViewShading>)shader {
     if (self = [super initWithFrame:frame]) {
         _shader = shader;
-        releaseCount += 1;
         if (![self configure]) {
             return nil;
         }
@@ -167,7 +164,7 @@ static int releaseCount = 0;
 }
 
 //- (void)setFrame:(CGRect)frame {
-//	NSLog(@"setFrame:%@", NSStringFromCGRect(frame));
+//    NSLog(@"setFrame:%@", NSStringFromCGRect(frame));
 //}
 
 - (void)dealloc {
@@ -179,10 +176,6 @@ static int releaseCount = 0;
     }
     [_timer invalidate];
     [self ensureGLContext];
-    releaseCount -= 1;
-    if (releaseCount <= 0) {
-        [(AGMDefaultShader *)_shader deleteBuffer];
-    }
     _shader = nil;
     //  if (_glContext && [EAGLContext currentContext] == _glContext) {
     //    [EAGLContext setCurrentContext:nil];
@@ -510,8 +503,8 @@ static int releaseCount = 0;
                       heightRatio:(float *)heightRatio {
     float frameWidth = CGRectGetWidth(self.glkView.bounds);
     float frameHeight = CGRectGetHeight(self.glkView.bounds);
-    //	float frameWidth = self.frame.size.width;
-    //	float frameHeight = self.frame.size.height;
+    //    float frameWidth = self.frame.size.width;
+    //    float frameHeight = self.frame.size.height;
     float picWHRatio = (frame.width*1.0)/(frame.height*1.0);
     if (AGMVideoRotation_90 == frame.rotation || AGMVideoRotation_270 == frame.rotation) {
         picWHRatio = (frame.height*1.0)/(frame.width*1.0);
