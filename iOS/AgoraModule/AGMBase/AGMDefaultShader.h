@@ -13,6 +13,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface AGMDefaultShader : NSObject <AGMVideoViewShading>
 
++ (instancetype)sharedInstance;
+
+- (void)incrementReferenceCount;
+
+- (void)reduceReferenceCount;
+
 @end
 
 NS_ASSUME_NONNULL_END

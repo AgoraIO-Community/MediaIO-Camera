@@ -104,12 +104,13 @@
  */
 
 - (instancetype)initWithFrame:(CGRect)frame {
-    return [self initWithFrame:frame shader:[[AGMDefaultShader alloc] init] ];
+    return [self initWithFrame:frame shader:[AGMDefaultShader sharedInstance]];
 }
 
 - (instancetype)initWithFrame:(CGRect)frame shader:(id<AGMVideoViewShading>)shader {
     if (self = [super initWithFrame:frame]) {
         _shader = shader;
+        [(AGMDefaultShader *)_shader incrementReferenceCount];
         if (![self configure]) {
             return nil;
         }
@@ -176,6 +177,7 @@
     }
     [_timer invalidate];
     [self ensureGLContext];
+    [(AGMDefaultShader *)_shader reduceReferenceCount];
     _shader = nil;
     //  if (_glContext && [EAGLContext currentContext] == _glContext) {
     //    [EAGLContext setCurrentContext:nil];

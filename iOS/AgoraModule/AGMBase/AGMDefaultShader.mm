@@ -72,8 +72,6 @@ AGM_FRAGMENT_SHADER_OUT
 "   " AGM_FRAGMENT_SHADER_COLOR " = vec4(texture2D(inputImageTexture, v_texcoord).bgr,1.0);\n"
 " }\n";
 
-
-static int releaseCount = 0;
 @implementation AGMDefaultShader {
     GLuint _vertexBuffer;
     GLuint _vertexArray;
@@ -86,27 +84,40 @@ static int releaseCount = 0;
     bool _oldMirror;
     float _oldWidthRatio;
     float _oldHeightRatio;
+    int _releaseCount;
 }
 
-- (instancetype)init {
-    if (self = [super init]) {
-        releaseCount += 1;
-    }
-    return self;
+static AGMDefaultShader *_instance = NULL;
+static dispatch_once_t onceToken;
++ (instancetype)allocWithZone:(struct _NSZone *)zone {
+    dispatch_once(&onceToken, ^{
+        _instance = [[super allocWithZone:zone] init];
+    });
+    return _instance;
 }
 
-- (void)dealloc {
-    glDeleteProgram(_i420Program);
-    glDeleteProgram(_nv12Program);
-    releaseCount -= 1;
-    if (releaseCount <= 0) {
++ (instancetype)sharedInstance {
+    return [AGMDefaultShader new];
+}
+
+- (void)incrementReferenceCount {
+    _releaseCount += 1;
+}
+
+- (void)reduceReferenceCount {
+    _releaseCount -= 1;
+    if (_releaseCount <= 0) {
         [self deleteBuffer];
     }
 }
 
 - (void)deleteBuffer {
+    glDeleteProgram(_i420Program);
+    glDeleteProgram(_nv12Program);
     glDeleteBuffers(1, &_vertexBuffer);
     glDeleteVertexArrays(1, &_vertexArray);
+    _instance = nil;
+    onceToken = 0;
 }
 
 - (BOOL)createAndSetupI420Program {
