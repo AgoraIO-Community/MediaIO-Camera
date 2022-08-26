@@ -8,7 +8,6 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.ImageDecoder;
-import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -104,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
         // needs to load resource files from local storage.
         // The loading may block the video rendering for a
         // little while.
-        mCameraVideoManager = CameraVideoManager.create(this, null, Camera.CameraInfo.CAMERA_FACING_FRONT, true);
+        mCameraVideoManager = CameraVideoManager.create(this, null, Constant.CAMERA_FACING_FRONT, true);
 
         mCameraVideoManager.setCameraStateListener(new VideoCapture.VideoCaptureStateListener() {
             @Override
