@@ -303,6 +303,37 @@ public class CameraVideoManager {
         return -4;
     }
 
+    public void setExposureCompensation(int value) {
+        checkAvailable();
+        if (mCameraChannel != null) {
+            mCameraChannel.setExposureCompensation(value);
+        }
+    }
+
+    public int getExposureCompensation() {
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.getExposureCompensation();
+        }
+        return 0;
+    }
+
+    public int getMinExposureCompensation() {
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.getMinExposureCompensation();
+        }
+        return 0;
+    }
+
+    public int getMaxExposureCompensation() {
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.getMaxExposureCompensation();
+        }
+        return 0;
+    }
+
     public IPreprocessor getPreprocessor() {
         checkAvailable();
         if (mCameraChannel != null) {

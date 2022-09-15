@@ -209,6 +209,7 @@ public class MainActivity extends AppCompatActivity {
         if(zoomSupported){
             float maxZoom = mCameraVideoManager.getMaxZoom();
             zoomSeek.setMax(100);
+            zoomValueTv.setText(0 + "");
             zoomSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -229,6 +230,37 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+
+
+        SeekBar exposureSb = findViewById(R.id.seek_exposure_compensation);
+        TextView exposureTv = findViewById(R.id.tv_exposure_compensation_value);
+        exposureSb.setMax(100);
+        int currExposure = mCameraVideoManager.getExposureCompensation();
+        int maxExposure = mCameraVideoManager.getMaxExposureCompensation();
+        int minExposure = mCameraVideoManager.getMinExposureCompensation();
+
+        exposureTv.setText(currExposure + "");
+        exposureSb.setProgress((currExposure - minExposure) * 100 / (maxExposure - minExposure));
+        exposureSb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                int progress = seekBar.getProgress();
+                float exposureValue = minExposure + progress * 1.0f / 100 * (maxExposure - minExposure);
+                exposureTv.setText(exposureValue + "");
+                mCameraVideoManager.setExposureCompensation((int) exposureValue);
+            }
+        });
+
     }
 
     private void switchVideoLayout() {

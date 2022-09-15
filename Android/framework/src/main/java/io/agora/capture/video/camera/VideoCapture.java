@@ -165,6 +165,13 @@ public abstract class VideoCapture extends VideoProducer {
     public abstract boolean isTorchSupported();
     public abstract int setTorchMode(boolean isOn);
 
+    // ExposureCompensation api
+    public abstract void setExposureCompensation (int value);
+    public abstract int getExposureCompensation ();
+    public abstract int getMinExposureCompensation ();
+    public abstract int getMaxExposureCompensation ();
+
+
 
     void deallocate() {
         if (fpsUtil != null) {
