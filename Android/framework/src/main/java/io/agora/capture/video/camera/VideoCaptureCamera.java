@@ -528,4 +528,39 @@ public class VideoCaptureCamera
     private static boolean isSupported(String value, List<String> supported) {
         return supported != null && supported.indexOf(value) >= 0;
     }
+
+    @Override
+    public void setExposureCompensation(int value) {
+        if(mCamera == null){
+            return;
+        }
+        Camera.Parameters parameters = mCamera.getParameters();
+        parameters.setExposureCompensation(value);
+        mCamera.setParameters(parameters);
+    }
+
+    @Override
+    public int getExposureCompensation() {
+        if(mCamera == null){
+            return 0;
+        }
+        Camera.Parameters parameters = mCamera.getParameters();
+        return parameters.getExposureCompensation();
+    }
+
+    @Override
+    public int getMaxExposureCompensation() {
+        if(mCamera == null){
+            return 0;
+        }
+        return mCamera.getParameters().getMaxExposureCompensation();
+    }
+
+    @Override
+    public int getMinExposureCompensation() {
+        if(mCamera == null){
+            return 0;
+        }
+        return mCamera.getParameters().getMinExposureCompensation();
+    }
 }

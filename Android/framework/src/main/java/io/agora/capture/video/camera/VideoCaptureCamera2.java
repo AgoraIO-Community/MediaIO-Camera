@@ -519,6 +519,26 @@ public class VideoCaptureCamera2 extends VideoCapture {
         return 0;
     }
 
+    @Override
+    public void setExposureCompensation(int value) {
+
+    }
+
+    @Override
+    public int getExposureCompensation() {
+        return 0;
+    }
+
+    @Override
+    public int getMinExposureCompensation() {
+        return 0;
+    }
+
+    @Override
+    public int getMaxExposureCompensation() {
+        return 0;
+    }
+
     private byte[] YUV_420_888toNV21(Image image) {
         int width = image.getWidth();
         int height = image.getHeight();

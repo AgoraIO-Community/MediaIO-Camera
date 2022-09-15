@@ -128,6 +128,34 @@ public class CameraVideoChannel extends VideoChannel {
         return -3;
     }
 
+    // ExposureCompensation api
+    public void setExposureCompensation(int value) {
+        if (mCapturedStarted) {
+            mVideoCapture.setExposureCompensation(value);
+        }
+    }
+
+    public int getExposureCompensation() {
+        if (mCapturedStarted) {
+            return mVideoCapture.getExposureCompensation();
+        }
+        return 0;
+    }
+
+    public int getMinExposureCompensation() {
+        if (mCapturedStarted) {
+            return mVideoCapture.getMinExposureCompensation();
+        }
+        return 0;
+    }
+
+    public int getMaxExposureCompensation() {
+        if (mCapturedStarted) {
+            return mVideoCapture.getMaxExposureCompensation();
+        }
+        return 0;
+    }
+
     private void switchCameraFacing() {
         if (mFacing == Constant.CAMERA_FACING_FRONT) {
             mFacing = Constant.CAMERA_FACING_BACK;
