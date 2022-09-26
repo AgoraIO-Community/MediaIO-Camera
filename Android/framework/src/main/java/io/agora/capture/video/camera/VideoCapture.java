@@ -37,10 +37,10 @@ public abstract class VideoCapture extends VideoProducer {
      * Common class for storing a frameRate range. Values should be multiplied by 1000.
      */
     public static class FrameRateRange {
-        int min;
-        int max;
+        public int min;
+        public int max;
 
-        FrameRateRange(int min, int max) {
+        public FrameRateRange(int min, int max) {
             this.min = min;
             this.max = max;
         }

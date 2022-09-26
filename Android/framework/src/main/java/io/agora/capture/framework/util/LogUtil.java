@@ -17,7 +17,7 @@ public class LogUtil {
     public static void i(Object obj, Object message){
         if(DEBUG) {
             if (obj != null && message != null) {
-                Log.i(obj.getClass().getSimpleName(), message.toString().trim());
+                Log.i(obj instanceof String ? (String) obj : obj.getClass().getSimpleName(), message.toString().trim());
             }
         }
     }
@@ -25,7 +25,7 @@ public class LogUtil {
     public static void e(Object obj, Object message) {
         if(DEBUG) {
             if (obj != null && message != null) {
-                Log.e(obj.getClass().getSimpleName(), message.toString().trim());
+                Log.e(obj instanceof String ? (String) obj : obj.getClass().getSimpleName(), message.toString().trim());
             }
         }
     }
@@ -33,7 +33,7 @@ public class LogUtil {
     public static void d(Object obj, Object message) {
         if(DEBUG) {
             if (obj != null && message != null) {
-                Log.d(obj.getClass().getSimpleName(), message.toString().trim());
+                Log.d(obj instanceof String ? (String) obj : obj.getClass().getSimpleName(), message.toString().trim());
             }
         }
     }
@@ -41,7 +41,7 @@ public class LogUtil {
     public static void w(Object obj, Object message) {
         if(DEBUG) {
             if (obj != null && message != null) {
-                Log.w(obj.getClass().getSimpleName(), message.toString().trim());
+                Log.w(obj instanceof String ? (String) obj : obj.getClass().getSimpleName(), message.toString().trim());
             }
         }
     }

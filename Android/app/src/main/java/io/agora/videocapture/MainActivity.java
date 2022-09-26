@@ -133,6 +133,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public VideoCapture.FrameRateRange onSelectCameraFpsRange(List<VideoCapture.FrameRateRange> supportFpsRange,
                                                                       VideoCapture.FrameRateRange selectedRange) {
+                if(Build.MODEL.startsWith("SM-G99")){
+                    VideoCapture.FrameRateRange desired = new VideoCapture.FrameRateRange(7 * 1000, 30 * 1000);
+                    if(supportFpsRange.contains(desired)){
+                        return desired;
+                    }
+                }
 
                 return null;
             }
@@ -316,7 +322,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (watermarkBitmap != null) {
-            WatermarkConfig config = new WatermarkConfig(360, 640);
+            WatermarkConfig config = new WatermarkConfig(720, 1280);
             watermarkMatrixOperator = mCameraVideoManager.setWaterMark(watermarkBitmap, config);
             watermarkBitmap.recycle();
 
