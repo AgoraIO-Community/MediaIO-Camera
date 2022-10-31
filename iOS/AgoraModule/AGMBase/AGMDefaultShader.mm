@@ -201,7 +201,9 @@ static dispatch_once_t onceToken;
 #if !TARGET_OS_IPHONE
     glBindVertexArray(_vertexArray);
 #endif
-    glBindBuffer(GL_ARRAY_BUFFER, _vertexBuffer);
+    if (_vertexBuffer != 0) {
+        glBindBuffer(GL_ARRAY_BUFFER, _vertexBuffer);
+    }
     if (!_currentRotation || rotation != _currentRotation || _oldMirror != mirror || widthRatio != _oldWidthRatio || heightRatio != _oldHeightRatio ) {
         _currentRotation = rotation;
         _oldMirror = mirror;
@@ -288,13 +290,12 @@ static dispatch_once_t onceToken;
         NSLog(@"Failed to setup RGBA shader");
         return;
     }
-    glUseProgram(_rgbaProgram);
-    glActiveTexture(GL_TEXTURE4);
-    glBindTexture(GL_TEXTURE_2D, rgbaPlane);
-    
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-    
-    glDisableVertexAttribArray(_rgbaProgram);
+    if (_vertexBuffer != 0) {
+        glUseProgram(_rgbaProgram);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, rgbaPlane);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    }
 }
 
 
