@@ -1,0 +1,6 @@
+framework module AGMBase {
+  umbrella header "AGMBase.h"
+
+  export *
+  module * { export * }
+}
