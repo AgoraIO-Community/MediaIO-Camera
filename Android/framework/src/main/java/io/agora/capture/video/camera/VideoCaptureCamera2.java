@@ -63,7 +63,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
             mCameraDevice = null;
             cameraSteady = false;
             firstFrame = false;
-            handleCaptureError(ERROR_CAMERA_DISCONNECTED);
+            handleCaptureError(ERROR_CAMERA_DISCONNECTED, null);
             changeCameraStateAndNotify(CameraState.STOPPED);
         }
 
@@ -74,7 +74,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
             mCameraDevice = null;
             cameraSteady = false;
             firstFrame = false;
-            handleCaptureError(error);
+            handleCaptureError(error, null);
         }
 
         @Override
@@ -96,7 +96,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
         }
     };
 
-    protected void handleCaptureError(int error) {
+    protected void handleCaptureError(int error, String msg) {
         if (stateListener != null) {
             int errorCode = -1;
             String errorMessage = null;
