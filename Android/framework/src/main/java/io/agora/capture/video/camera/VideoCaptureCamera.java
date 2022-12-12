@@ -73,14 +73,14 @@ public class VideoCaptureCamera
         @Override
         public void onError(int error, Camera camera) {
             LogUtil.e(TAG, "Camera capture error: " + error);
-            handleCaptureError(error);
+            handleCaptureError(error, null);
         }
     }
 
-    protected void handleCaptureError(int error) {
+    protected void handleCaptureError(int error, String msg) {
         if (stateListener != null) {
-            int errorCode = -1;
-            String errorMessage = null;
+            int errorCode = error;
+            String errorMessage = msg;
             String hint = "Camera: ";
             switch (error) {
                 case Camera.CAMERA_ERROR_UNKNOWN:
@@ -117,6 +117,9 @@ public class VideoCaptureCamera
 
         synchronized (mCameraStateLock) {
             if (mCameraState != CameraState.STOPPED) {
+                String message = "allocate: The camera status is not stopped!";
+                LogUtil.e(TAG, message);
+                handleCaptureError(ERROR_ALLOCATE, message);
                 return false;
             }
         }
@@ -137,30 +140,43 @@ public class VideoCaptureCamera
             }
         }
 
+        Camera camera;
         try {
-            mCamera = Camera.open(mCameraId);
-        } catch (RuntimeException ex) {
-            LogUtil.e(TAG, "allocate: Camera.open: " + ex);
-            mErrorCallback.onError(ERROR_UNKNOWN, null);
+            camera = Camera.open(mCameraId);
+        } catch (Exception ex) {
+            String message = "allocate: Camera.open: " + ex;
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
+            return false;
+        }
+        if(camera == null){
+            String message = "allocate: Camera.open(" + mCameraId + ") return null!";
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
             return false;
         }
 
         Camera.CameraInfo cameraInfo = getCameraInfo(mCameraId);
         if (cameraInfo == null) {
-            mCamera.release();
-            mCamera = null;
+            camera.release();
+            String message = "allocate: getCameraInfo null";
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
             return false;
         }
 
         // Making the texture transformation behaves
         // as the same as Camera2 api.
-        mCamera.setDisplayOrientation(0);
+        camera.setDisplayOrientation(0);
         pCameraNativeOrientation = cameraInfo.orientation;
         pInvertDeviceOrientationReadings = cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT;
 
-        Camera.Parameters parameters = getCameraParameters(mCamera);
+        Camera.Parameters parameters = getCameraParameters(camera);
         if (parameters == null) {
-            mCamera = null;
+            camera.release();
+            String message = "allocate: getCameraParameters is null";
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
             return false;
         }
 
@@ -168,7 +184,11 @@ public class VideoCaptureCamera
         // element, but when camera is in bad state, it can return null pointer.
         List<int[]> listFpsRange = parameters.getSupportedPreviewFpsRange();
         if (listFpsRange == null || listFpsRange.size() == 0) {
-            LogUtil.e(TAG, "allocate: no fps range found");
+            camera.release();
+
+            String message = "allocate: no fps range found";
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
             return false;
         }
         final ArrayList<FrameRateRange> ranges =
@@ -206,7 +226,11 @@ public class VideoCaptureCamera
             }
         }
         if (minDiff == Integer.MAX_VALUE) {
-            LogUtil.e(TAG, "Couldn't find resolution close to (" + width + "x" + height + ")");
+            camera.release();
+
+            String message = "allocate: " + "Couldn't find resolution close to (" + width + "x" + height + ")";
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
             return false;
         }
         LogUtil.d(TAG, "allocate: matched (" + matchedWidth +  " x " + matchedHeight + ")");
@@ -237,24 +261,30 @@ public class VideoCaptureCamera
         }
 
         try {
-            mCamera.setParameters(parameters);
-        } catch (RuntimeException ex) {
-            LogUtil.e(TAG, "setParameters: " + ex);
+            camera.setParameters(parameters);
+        } catch (Exception ex) {
+            camera.release();
+
+            String message = "allocate: setParameters error -- " + ex;
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
             return false;
         }
 
-        mCamera.setErrorCallback(mErrorCallback);
+        camera.setErrorCallback(mErrorCallback);
 
         mExpectedFrameSize = pCaptureFormat.getWidth() * pCaptureFormat.getHeight()
                 * ImageFormat.getBitsPerPixel(pCaptureFormat.getPixelFormat()) / 8;
         for (int i = 0; i < NUM_CAPTURE_BUFFERS; i++) {
             byte[] buffer = new byte[mExpectedFrameSize];
-            mCamera.addCallbackBuffer(buffer);
+            camera.addCallbackBuffer(buffer);
         }
 
         synchronized (mCameraStateLock) {
             mCameraState = CameraState.OPENING;
         }
+
+        mCamera = camera;
 
         return true;
     }
