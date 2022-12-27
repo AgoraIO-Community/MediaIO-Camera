@@ -22,3 +22,5 @@ static const unsigned char AGMBaseVersionString[] = "2.0.1";
 #import <AGMBase/AGMOpenGLDefines.h>
 #import <AGMBase/AGMVideoViewShading.h>
 #import <AGMBase/AGMMacros.h>
+#import <AGMBase/AGMDefaultShader.h>
+#import <AGMBase/AGMShader.h>

@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name         = "AGMCapturer"
-  spec.version      = "1.1.7.2"
+  spec.version      = "1.1.7.4"
   spec.summary      = "ZhaoYongqiang"
   spec.description  = "Video Custom Capturer"
   spec.homepage     = "https://github.com/AgoraIO-Community/MediaIO-Camera"

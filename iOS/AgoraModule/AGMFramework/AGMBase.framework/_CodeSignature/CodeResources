@@ -6,7 +6,7 @@
 	<dict>
 		<key>Headers/AGMBase.h</key>
 		<data>
-		PKXBtCUOO0mU0Dp/Uc4WxHxAvgo=
+		nR0zS2dMKZZJ9wb9+lMIhUMvKwY=
 		</data>
 		<key>Headers/AGMCVPixelBuffer.h</key>
 		<data>
@@ -46,7 +46,7 @@
 		</data>
 		<key>Headers/AGMShader.h</key>
 		<data>
-		qfQxMQsY5wn9z2gyKo3yHWBReQY=
+		Ynofk+cBB2HflNg6QdkPS353RpU=
 		</data>
 		<key>Headers/AGMVideoFrame.h</key>
 		<data>
@@ -71,11 +71,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			PKXBtCUOO0mU0Dp/Uc4WxHxAvgo=
+			nR0zS2dMKZZJ9wb9+lMIhUMvKwY=
 			</data>
 			<key>hash2</key>
 			<data>
-			lTMEfXFgXSD3eAq3Hm+BjkIbRW2pXy3LfPMIhfxRcnk=
+			fOgbnRDUq8ihtrG/qjp7KxdXdqEbwRczeWzlh5oa78g=
 			</data>
 		</dict>
 		<key>Headers/AGMCVPixelBuffer.h</key>
@@ -181,11 +181,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			qfQxMQsY5wn9z2gyKo3yHWBReQY=
+			Ynofk+cBB2HflNg6QdkPS353RpU=
 			</data>
 			<key>hash2</key>
 			<data>
-			C+d48+g3/WoQgP2yAelO59twJuHVvk3oPEJ/HVFJnrM=
+			BSvAE3kEBHgyzH/CiHwvp7XygqMKD44XxiK1L9ONPew=
 			</data>
 		</dict>
 		<key>Headers/AGMVideoFrame.h</key>
