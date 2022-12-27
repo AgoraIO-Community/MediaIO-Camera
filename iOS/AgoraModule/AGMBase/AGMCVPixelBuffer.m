@@ -21,7 +21,9 @@
 - (instancetype)initWithPixelBuffer:(CVPixelBufferRef)pixelBuffer {
     if (self = [super init]) {
         _pixelBuffer = pixelBuffer;
-        CVBufferRetain(_pixelBuffer);
+        if (_pixelBuffer) {
+            CVBufferRetain(_pixelBuffer);
+        }
     }
     return self;
 }
@@ -34,7 +36,9 @@
 }
 
 - (void)dealloc {
-    CVBufferRelease(_pixelBuffer);
+    if (_pixelBuffer) {
+        CVBufferRelease(_pixelBuffer);
+    }
 }
 
 

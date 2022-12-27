@@ -112,10 +112,18 @@ static dispatch_once_t onceToken;
 }
 
 - (void)deleteBuffer {
-    glDeleteProgram(_i420Program);
-    glDeleteProgram(_nv12Program);
-    glDeleteBuffers(1, &_vertexBuffer);
-    glDeleteVertexArrays(1, &_vertexArray);
+    if (_i420Program) {
+        glDeleteProgram(_i420Program);
+    }
+    if (_nv12Program) {
+        glDeleteProgram(_nv12Program);
+    }
+    if (_vertexBuffer) {
+        glDeleteBuffers(1, &_vertexBuffer);
+    }
+    if (_vertexArray) {
+        glDeleteVertexArrays(1, &_vertexArray);
+    }
     _instance = nil;
     onceToken = 0;
 }
@@ -136,8 +144,9 @@ static dispatch_once_t onceToken;
         _i420Program = 0;
         return NO;
     }
-    
-    glUseProgram(_i420Program);
+    if (_i420Program) {
+        glUseProgram(_i420Program);
+    }
     glUniform1i(ySampler, kYTextureUnit);
     glUniform1i(uSampler, kUTextureUnit);
     glUniform1i(vSampler, kVTextureUnit);

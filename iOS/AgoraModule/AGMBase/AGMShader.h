@@ -7,8 +7,8 @@
 //
 
 #import <AVFoundation/AVFoundation.h>
-#import <AGMVideoFrame.h>
-#import <AGMMacros.h>
+#import "AGMVideoFrame.h"
+#import "AGMMacros.h"
 
 AGM_EXTERN const char kAGMVertexShaderSource[];
 

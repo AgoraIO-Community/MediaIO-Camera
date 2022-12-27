@@ -9,7 +9,7 @@
 #import "AGMEAGLVideoView.h"
 #import <GLKit/GLKit.h>
 #import <AGMBase/AGMBase.h>
-#import "AGMDefaultShader.h"
+#import <AGMBase/AGMDefaultShader.h>
 
 // AGMDisplayLinkTimer wraps a CADisplayLink and is set to fire every two screen
 // refreshes, which should be 30fps. We wrap the display link in order to avoid
@@ -65,7 +65,9 @@
 }
 
 - (void)displayLinkDidFire:(CADisplayLink *)displayLink {
-    _timerHandler();
+    if (_timerHandler) {
+        _timerHandler();
+    }
 }
 
 @end
@@ -151,7 +153,7 @@
     // occurs on the main thread.
     __weak AGMEAGLVideoView *weakSelf = self;
     _timer = [[AGMDisplayLinkTimer alloc] initWithTimerHandler:^{
-        AGMEAGLVideoView *strongSelf = weakSelf;
+        __strong AGMEAGLVideoView *strongSelf = weakSelf;
         [strongSelf displayLinkTimerDidFire];
     }];
     _timer.isPaused = YES;
@@ -237,26 +239,30 @@
     } else if ([frame isKindOfClass:AGMRGBATexture.class] ) {
         AGMRGBATexture *agmRGBATexture = frame;
         pixelBuffer = agmRGBATexture.pixelBuffer;
-        [self.shader applyShadingForFrameWithWidth:frame.width
-                                            height:frame.height
-                                          rotation:frame.rotation
-                                         rgbaPlane:agmRGBATexture.rgbaTexture
-                                            mirror:self.mirror
-                                        widthRatio:widthRatio
-                                       heightRatio:heightRatio];
+        if ([self.shader respondsToSelector:@selector(applyShadingForFrameWithWidth:height:rotation:rgbaPlane:mirror:widthRatio:heightRatio:)]) {
+            [self.shader applyShadingForFrameWithWidth:(int)frame.width
+                                                height:(int)frame.height
+                                              rotation:frame.rotation
+                                             rgbaPlane:agmRGBATexture.rgbaTexture
+                                                mirror:self.mirror
+                                            widthRatio:widthRatio
+                                           heightRatio:heightRatio];
+        }
         _lastDrawnFrametimeStampMs = frame.timeStampMs;
         return;
     } else if ([frame isKindOfClass:AGMNV12Texture.class]) {
         AGMNV12Texture *agmNV12Texture = frame;
         pixelBuffer = agmNV12Texture.pixelBuffer;
-        [self.shader applyShadingForFrameWithWidth:frame.width
-                                            height:frame.height
-                                          rotation:frame.rotation
-                                            yPlane:agmNV12Texture.yTexture
-                                           uvPlane:agmNV12Texture.uvTexture
-                                            mirror:self.mirror
-                                        widthRatio:widthRatio
-                                       heightRatio:heightRatio];
+        if ([self.shader respondsToSelector:@selector(applyShadingForFrameWithWidth:height:rotation:yPlane:uvPlane:mirror:widthRatio:heightRatio:)]) {
+            [self.shader applyShadingForFrameWithWidth:(int)frame.width
+                                                height:(int)frame.height
+                                              rotation:frame.rotation
+                                                yPlane:agmNV12Texture.yTexture
+                                               uvPlane:agmNV12Texture.uvTexture
+                                                mirror:self.mirror
+                                            widthRatio:widthRatio
+                                           heightRatio:heightRatio];
+        }
         _lastDrawnFrametimeStampMs = frame.timeStampMs;
         return;
     } else {
@@ -271,13 +277,15 @@
         }
         if (self.rgbaTextureCache) {
             [self.rgbaTextureCache uploadPixelBufferToTextures:pixelBuffer];
-            [self.shader applyShadingForFrameWithWidth:frame.width
-                                                height:frame.height
-                                              rotation:frame.rotation
-                                             rgbaPlane:self.rgbaTextureCache.rgbaTexture
-                                                mirror:self.mirror
-                                            widthRatio:widthRatio
-                                           heightRatio:heightRatio];
+            if ([self.shader respondsToSelector:@selector(applyShadingForFrameWithWidth:height:rotation:rgbaPlane:mirror:widthRatio:heightRatio:)]) {
+                [self.shader applyShadingForFrameWithWidth:(int)frame.width
+                                                    height:(int)frame.height
+                                                  rotation:frame.rotation
+                                                 rgbaPlane:self.rgbaTextureCache.rgbaTexture
+                                                    mirror:self.mirror
+                                                widthRatio:widthRatio
+                                               heightRatio:heightRatio];
+            }
             [self.rgbaTextureCache releaseTextures];
             _lastDrawnFrametimeStampMs = frame.timeStampMs;
         }
@@ -287,14 +295,16 @@
         }
         if (self.nv12TextureCache) {
             [self.nv12TextureCache uploadPixelBufferToTextures:pixelBuffer];
-            [self.shader applyShadingForFrameWithWidth:frame.width
-                                                height:frame.height
-                                              rotation:frame.rotation
-                                                yPlane:self.nv12TextureCache.yTexture
-                                               uvPlane:self.nv12TextureCache.uvTexture
-                                                mirror:self.mirror
-                                            widthRatio:widthRatio
-                                           heightRatio:heightRatio];
+            if ([self.shader respondsToSelector:@selector(applyShadingForFrameWithWidth:height:rotation:yPlane:uvPlane:mirror:widthRatio:heightRatio:)]) {
+                [self.shader applyShadingForFrameWithWidth:(int)frame.width
+                                                    height:(int)frame.height
+                                                  rotation:frame.rotation
+                                                    yPlane:self.nv12TextureCache.yTexture
+                                                   uvPlane:self.nv12TextureCache.uvTexture
+                                                    mirror:self.mirror
+                                                widthRatio:widthRatio
+                                               heightRatio:heightRatio];
+            }
             [self.nv12TextureCache releaseTextures];
             _lastDrawnFrametimeStampMs = frame.timeStampMs;
         }
@@ -366,6 +376,12 @@
         // calculate the minimum of shrink ratio
         CGFloat width_ratio = parent_width / frame_width;
         CGFloat height_ratio = parent_height / frame_height;
+        if (isnan(width_ratio)) {
+            width_ratio = 1.0;
+        }
+        if (isnan(height_ratio)) {
+            height_ratio = 1.0;
+        }
         // AGMRenderMode_Hidden-> max, crop; others-> min, leave blank
         CGFloat new_ratio = renderMode == AGMRenderMode_Hidden
         ? fmax(width_ratio, height_ratio)
@@ -467,9 +483,18 @@
 - (CGSize)calcVertexCoordinatesRatio:(CGSize)parentSize renderMode:(AGMRenderMode)renderMode {
     CGFloat frameWidth = parentSize.width;
     CGFloat frameHeight = parentSize.height;
+    if (frameWidth <= 0) {
+        frameWidth = [UIScreen mainScreen].bounds.size.width;
+    }
+    if (frameHeight <= 0) {
+        frameHeight = [UIScreen mainScreen].bounds.size.height;
+    }
     CGFloat picWHRatio = (self.videoFrame.width * 1.0) / (self.videoFrame.height * 1.0);
     if (AGMVideoRotation_90 == self.videoFrame.rotation || AGMVideoRotation_270 == self.videoFrame.rotation) {
         picWHRatio = (self.videoFrame.height * 1.0) / (self.videoFrame.width * 1.0);
+    }
+    if (isnan(picWHRatio)) {
+        picWHRatio = 1.0;
     }
     
     CGSize retval = CGSizeMake(1.0, 1.0);
@@ -484,7 +509,6 @@
         } else {
             autoPicWidth = autoPicHeight * picWHRatio;
         }
-        
         retval.width = autoPicWidth / frameWidth;
         retval.height = autoPicHeight / frameHeight;
     } else if (renderMode == AGMRenderMode_Hidden) {
@@ -505,11 +529,20 @@
                       heightRatio:(float *)heightRatio {
     float frameWidth = CGRectGetWidth(self.glkView.bounds);
     float frameHeight = CGRectGetHeight(self.glkView.bounds);
+    if (frameWidth <= 0) {
+        frameWidth = [UIScreen mainScreen].bounds.size.width;
+    }
+    if (frameHeight <= 0) {
+        frameHeight = [UIScreen mainScreen].bounds.size.height;
+    }
     //    float frameWidth = self.frame.size.width;
     //    float frameHeight = self.frame.size.height;
     float picWHRatio = (frame.width*1.0)/(frame.height*1.0);
     if (AGMVideoRotation_90 == frame.rotation || AGMVideoRotation_270 == frame.rotation) {
         picWHRatio = (frame.height*1.0)/(frame.width*1.0);
+    }
+    if (isnan(picWHRatio)) {
+        picWHRatio = 1.0;
     }
     float framWHRatio = frameWidth/frameHeight;
     if (_renderMode == AGMRenderMode_Fit) {
