@@ -112,11 +112,13 @@ public class WatermarkProcessor {
         GLES20.glDisable(GLES20.GL_BLEND);
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
 
+
         frame.image = null;
         frame.format.setPixelFormat(ImageFormat.UNKNOWN);
         frame.textureId = outTexId;
         frame.rotation = 0;
         frame.mirrored = false;
+
         frame.format.setWidth(outWidth);
         frame.format.setHeight(outHeight);
         frame.format.setTexFormat(GLES20.GL_TEXTURE_2D);

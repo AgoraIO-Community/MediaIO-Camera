@@ -396,7 +396,6 @@ public class VideoCaptureCamera
             if (mCameraState != CameraState.STARTED) {
                 return;
             }
-
             if (data.length != mExpectedFrameSize) {
                 LogUtil.e(TAG, "the frame size is not as expected");
                 return;

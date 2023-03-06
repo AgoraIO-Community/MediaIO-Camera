@@ -147,8 +147,8 @@ public class MainActivity extends AppCompatActivity {
         // Set camera capture configuration
         mCameraVideoManager.setPictureSize(640, 480);
         mCameraVideoManager.setFrameRate(24);
-        //mCameraVideoManager.setFacing(Constant.CAMERA_FACING_FRONT);
-        //mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
+        mCameraVideoManager.setFacing(Constant.CAMERA_FACING_FRONT);
+        mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
 
         // The preview surface is actually considered as
         // an on-screen consumer under the hood.
@@ -289,6 +289,9 @@ public class MainActivity extends AppCompatActivity {
         if (mCameraVideoManager != null) {
             mIsMirrored = !mIsMirrored;
             mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
+            if(watermarkMatrixOperator != null){
+                watermarkMatrixOperator.setMirror(mIsMirrored);
+            }
         }
     }
 
@@ -337,6 +340,7 @@ public class MainActivity extends AppCompatActivity {
         // updateUI
         updateWatermarkLayout(false);
     }
+
 
     private void updateWatermarkLayout(boolean visible) {
         if(watermarkMatrixOperator == null){
