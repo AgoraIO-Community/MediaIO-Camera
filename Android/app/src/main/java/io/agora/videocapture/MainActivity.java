@@ -211,11 +211,12 @@ public class MainActivity extends AppCompatActivity {
         SeekBar zoomSeek = findViewById(R.id.seek_zoom);
         TextView zoomValueTv = findViewById(R.id.tv_zoom_value);
         boolean zoomSupported = mCameraVideoManager.isZoomSupported();
-        zoomLayout.setVisibility(zoomSupported? View.VISIBLE: View.GONE);
+        zoomLayout.setVisibility(zoomSupported? View.VISIBLE: View.INVISIBLE);
         if(zoomSupported){
             float maxZoom = mCameraVideoManager.getMaxZoom();
             zoomSeek.setMax(100);
             zoomValueTv.setText(0 + "");
+            zoomSeek.setProgress(0);
             zoomSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -246,7 +247,9 @@ public class MainActivity extends AppCompatActivity {
         int minExposure = mCameraVideoManager.getMinExposureCompensation();
 
         exposureTv.setText(currExposure + "");
-        exposureSb.setProgress((currExposure - minExposure) * 100 / (maxExposure - minExposure));
+        if (maxExposure > minExposure) {
+            exposureSb.setProgress((currExposure - minExposure) * 100 / (maxExposure - minExposure));
+        }
         exposureSb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -289,9 +292,6 @@ public class MainActivity extends AppCompatActivity {
         if (mCameraVideoManager != null) {
             mIsMirrored = !mIsMirrored;
             mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
-            if(watermarkMatrixOperator != null){
-                watermarkMatrixOperator.setMirror(mIsMirrored);
-            }
         }
     }
 

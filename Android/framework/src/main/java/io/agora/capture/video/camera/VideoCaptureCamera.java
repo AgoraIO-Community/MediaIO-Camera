@@ -65,7 +65,7 @@ public class VideoCaptureCamera
         try {
             parameters = camera.getParameters();
         } catch (RuntimeException ex) {
-            LogUtil.e(TAG, "getCameraParameters: android.hardware.Camera.getParameters: " + ex);
+            LogUtil.e(TAG, "getCameraParameters: android.hardware.Camera.getParameters", ex);
             return null;
         }
         return parameters;
@@ -306,10 +306,9 @@ public class VideoCaptureCamera
         }
 
         synchronized (mCameraStateLock) {
+            mCamera = camera;
             mCameraState = CameraState.OPENING;
         }
-
-        mCamera = camera;
 
         return true;
     }
@@ -402,11 +401,11 @@ public class VideoCaptureCamera
             pPreviewTextureId = -1;
         }
 
-        pCaptureFormat = null;
-        mCamera.release();
-        mCamera = null;
-
         synchronized (mCameraStateLock) {
+            pCaptureFormat = null;
+            mCamera.release();
+            mCamera = null;
+
             mCameraState = CameraState.STOPPED;
         }
 
@@ -437,6 +436,9 @@ public class VideoCaptureCamera
 
     @Override
     public boolean isTorchSupported() {
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
+            return false;
+        }
         Camera camera = mCamera;
         if (camera == null) {
             return false;
@@ -451,6 +453,9 @@ public class VideoCaptureCamera
 
     @Override
     public int setTorchMode(boolean isOn) {
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
+            return -1;
+        }
         Camera camera = mCamera;
         if (camera == null) {
             return -1;
@@ -486,6 +491,9 @@ public class VideoCaptureCamera
 
     @Override
     public boolean isZoomSupported() {
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
+            return false;
+        }
         Camera camera = mCamera;
         if (camera == null) {
             return false;
@@ -499,6 +507,9 @@ public class VideoCaptureCamera
 
     @Override
     public int setZoom(float zoomValue) {
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
+            return -1;
+        }
         Camera camera = mCamera;
         if(zoomValue < 0.0F || camera == null){
             return -1;
@@ -544,6 +555,9 @@ public class VideoCaptureCamera
 
     @Override
     public float getMaxZoom() {
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
+            return -1.0F;
+        }
         Camera camera = mCamera;
         if(camera == null){
             return -1.0F;
@@ -598,36 +612,81 @@ public class VideoCaptureCamera
 
     @Override
     public void setExposureCompensation(int value) {
-        if(mCamera == null){
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
             return;
         }
-        Camera.Parameters parameters = mCamera.getParameters();
+        Camera camera = mCamera;
+        if(camera == null){
+            return;
+        }
+        Camera.Parameters parameters = getCameraParameters(camera);
+        if(parameters == null){
+            return;
+        }
         parameters.setExposureCompensation(value);
-        mCamera.setParameters(parameters);
+        try {
+            mCamera.setParameters(parameters);
+        } catch (Exception e) {
+            LogUtil.e(TAG, "setExposureCompensation: setParameters error -- exposureCompensationValue=" + value + ", exception=" + e);
+        }
     }
 
     @Override
     public int getExposureCompensation() {
-        if(mCamera == null){
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
             return 0;
         }
-        Camera.Parameters parameters = mCamera.getParameters();
+        Camera camera = mCamera;
+        if(camera == null){
+            return 0;
+        }
+        Camera.Parameters parameters = getCameraParameters(camera);
+        if (parameters == null) {
+            return 0;
+        }
         return parameters.getExposureCompensation();
     }
 
     @Override
     public int getMaxExposureCompensation() {
-        if(mCamera == null){
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
             return 0;
         }
-        return mCamera.getParameters().getMaxExposureCompensation();
+        Camera camera = mCamera;
+        if(camera == null){
+            return 0;
+        }
+        Camera.Parameters parameters = getCameraParameters(camera);
+        if (parameters == null) {
+            return 0;
+        }
+        return parameters.getMaxExposureCompensation();
     }
 
     @Override
     public int getMinExposureCompensation() {
-        if(mCamera == null){
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
             return 0;
         }
-        return mCamera.getParameters().getMinExposureCompensation();
+        Camera camera = mCamera;
+        if(camera == null){
+            return 0;
+        }
+        Camera.Parameters parameters = getCameraParameters(camera);
+        if (parameters == null) {
+            return 0;
+        }
+        return parameters.getMinExposureCompensation();
+    }
+
+    private boolean checkCameraState(CameraState... states){
+        synchronized (mCameraStateLock){
+            for (CameraState state : states) {
+                if(mCameraState == state){
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }
