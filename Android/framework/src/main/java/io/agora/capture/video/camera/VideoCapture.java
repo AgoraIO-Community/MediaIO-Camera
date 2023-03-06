@@ -32,6 +32,7 @@ public abstract class VideoCapture extends VideoProducer {
     public static final int ERROR_CAMERA_SERVICE = 5;
     public static final int ERROR_CAMERA_DISCONNECTED = 6;
     public static final int ERROR_CAMERA_FREEZED = 7;
+    public static final int ERROR_ALLOCATE = 8;
 
     /**
      * Common class for storing a frameRate range. Values should be multiplied by 1000.
@@ -225,7 +226,7 @@ public abstract class VideoCapture extends VideoProducer {
 
     protected abstract void startPreview();
 
-    protected abstract void handleCaptureError(int error);
+    protected abstract void handleCaptureError(int error, String message);
 
     void setSharedContext(EGLContext eglContext) {
         pEGLContext = eglContext;
