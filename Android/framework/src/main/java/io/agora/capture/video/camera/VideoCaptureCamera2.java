@@ -96,6 +96,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
         }
     };
 
+
     protected void handleCaptureError(int error, String msg) {
         if (stateListener != null) {
             int errorCode = -1;
