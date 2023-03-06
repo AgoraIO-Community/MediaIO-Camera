@@ -19,6 +19,7 @@ import io.agora.capture.framework.modules.processors.RotateProcessor;
 import io.agora.capture.framework.modules.processors.WatermarkProcessor;
 import io.agora.capture.framework.modules.producers.IVideoProducer;
 import io.agora.capture.framework.util.LogUtil;
+import io.agora.capture.framework.util.ThreadUtils;
 import io.agora.capture.video.camera.Constant;
 import io.agora.capture.video.camera.VideoCaptureFrame;
 
@@ -33,6 +34,7 @@ public class VideoChannel extends HandlerThread {
     private List<IVideoConsumer> mOffScreenConsumers = new ArrayList<>();
     private int mOnScreenConsumerMirrorMode = Constant.MIRROR_MODE_AUTO;
     private IPreprocessor mPreprocessor;
+    private volatile boolean isPreprocessorInitialized = false;
 
     // Used to rotate the image to normal direction according
     // to texture transformation matrix and possibly surface
@@ -53,8 +55,17 @@ public class VideoChannel extends HandlerThread {
         mContext.setContext(context);
     }
 
-    void setPreprocessor(IPreprocessor preprocessor) {
-        mPreprocessor = preprocessor;
+    public void setPreprocessor(IPreprocessor preprocessor) {
+        if(mHandler == null){
+            mPreprocessor = preprocessor;
+            isPreprocessorInitialized = false;
+        }else{
+            ThreadUtils.invokeAtFrontUninterruptibly(mHandler, () -> {
+                releasePreprocessor();
+                mPreprocessor = preprocessor;
+                isPreprocessorInitialized = false;
+            });
+        }
     }
 
     @Override
@@ -67,7 +78,6 @@ public class VideoChannel extends HandlerThread {
     private void init() {
         LogUtil.i(TAG, "channel opengl init");
         initOpenGL();
-        initPreprocessor();
         initRotateProcessor();
         initWatermarkProcessor();
         onChannelContextCreated();
@@ -87,9 +97,10 @@ public class VideoChannel extends HandlerThread {
         mContext.setProgramOES(new ProgramTextureOES());
     }
 
-    private void initPreprocessor() {
-        if (mPreprocessor != null) {
+    private void mayInitPreprocessor() {
+        if (mPreprocessor != null && !isPreprocessorInitialized) {
             mPreprocessor.initPreprocessor();
+            isPreprocessorInitialized = true;
         }
     }
 
@@ -281,9 +292,12 @@ public class VideoChannel extends HandlerThread {
     }
 
     public void disconnectConsumer(IVideoConsumer consumer) {
+        final Handler handler = mHandler;
+        if (handler == null) {
+            return;
+        }
         checkThreadRunningState();
-
-        mHandler.post(() -> {
+        handler.post(() -> {
             if (mOnScreenConsumers.contains(consumer)) {
                 consumer.recycle();
                 mOnScreenConsumers.remove(consumer);
@@ -292,6 +306,9 @@ public class VideoChannel extends HandlerThread {
                 consumer.recycle();
                 mOffScreenConsumers.remove(consumer);
                 LogUtil.d(TAG, "Off-screen consumer disconnected:" + consumer);
+            } else {
+                removeSameConsumers(mOffScreenConsumers,
+                        consumer.getDrawingTarget(), consumer.getId());
             }
 
             if (mOnScreenConsumers.isEmpty() &&
@@ -312,6 +329,8 @@ public class VideoChannel extends HandlerThread {
 
     public void pushVideoFrame(VideoCaptureFrame frame) {
         checkThreadRunningState();
+
+        mayInitPreprocessor();
 
         if (mPreprocessor != null) {
             frame = mPreprocessor.onPreProcessFrame(frame, getChannelContext());

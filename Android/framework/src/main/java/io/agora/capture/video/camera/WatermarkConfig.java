@@ -1,6 +1,8 @@
 package io.agora.capture.video.camera;
 
-import io.agora.capture.framework.util.MatrixOperator;
+
+import io.agora.capture.framework.gles.MatrixOperator;
+
 
 public class WatermarkConfig {
     public int outWidth;

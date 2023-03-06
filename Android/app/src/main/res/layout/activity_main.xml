@@ -14,7 +14,7 @@
         android:id="@+id/small_video_layout"
         android:layout_width="90dp"
         android:layout_height="160dp"
-        android:layout_below="@+id/btn_jump_next"
+        android:layout_below="@+id/switch_torch"
         android:layout_alignParentEnd="true"
         android:layout_marginEnd="25dp"
         android:background="@android:color/darker_gray" />
@@ -31,6 +31,72 @@
         android:onClick="onCameraChange"
         android:padding="12dp"
         android:src="@drawable/ic_switch_camera" />
+
+    <LinearLayout
+        android:id="@+id/ll_zoom"
+        android:layout_width="wrap_content"
+        android:layout_height="38dp"
+        android:layout_alignTop="@id/switch_camera"
+        android:layout_centerInParent="true"
+        android:layout_marginVertical="4dp"
+        android:layout_toStartOf="@id/switch_camera"
+        android:layout_toEndOf="@+id/mirror_button"
+        android:background="#cccccc"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Zoom" />
+
+        <SeekBar
+            android:id="@+id/seek_zoom"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tv_zoom_value"
+            android:layout_width="35dp"
+            android:layout_height="wrap_content"
+            android:lines="1"
+            android:text="100" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/ll_exposure_compensation"
+        android:layout_width="wrap_content"
+        android:layout_height="38dp"
+        android:layout_below="@+id/ll_zoom"
+        android:layout_centerInParent="true"
+        android:layout_marginVertical="4dp"
+        android:layout_toStartOf="@id/switch_camera"
+        android:layout_toEndOf="@+id/mirror_button"
+        android:background="#cccccc"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Exposure" />
+
+        <SeekBar
+            android:id="@+id/seek_exposure_compensation"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tv_exposure_compensation_value"
+            android:layout_width="35dp"
+            android:layout_height="wrap_content"
+            android:lines="1"
+            android:text="100" />
+
+    </LinearLayout>
 
     <Button
         android:id="@+id/mirror_button"
@@ -63,6 +129,17 @@
         android:layout_alignEnd="@id/btn_watermark"
         android:onClick="jumpNext"
         android:text="Jump Next" />
+
+    <Switch
+        android:id="@+id/switch_torch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/btn_jump_next"
+        android:layout_alignEnd="@id/btn_jump_next"
+        android:layout_marginBottom="4dp"
+        android:background="#cccccc"
+        android:padding="8dp"
+        android:text="Torch " />
 
 
     <LinearLayout
@@ -192,6 +269,59 @@
                 android:layout_height="wrap_content"
                 android:singleLine="true"
                 android:text="Value"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rotation"/>
+
+            <SeekBar
+                android:id="@+id/slider_watermark_rotate"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:elevation="4dp"
+                android:max="100"
+                android:progress="100"/>
+
+            <TextView
+                android:id="@+id/slider_watermark_rotate_value"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:text="Value"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Switch
+                android:id="@+id/switch_flip_h"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="10dp"
+                android:text="FlipH"/>
+
+            <Switch
+                android:id="@+id/switch_flip_v"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="10dp"
+                android:text="FlipV"/>
 
         </LinearLayout>
 

@@ -26,7 +26,7 @@ void AGMRunSyncOnVideoProcessingQueue(void (^block)(void)) {
 #if !OS_OBJECT_USE_OBJC
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    if (dispatch_get_current_queue() == videoProcessingQueue)
+    if (dispatch_get_current_queue() == videoProcessingQueue && block)
 #pragma clang diagnostic pop
 #else
         if (dispatch_get_specific([AGMEAGLContext contextKey]))
@@ -46,14 +46,13 @@ void AGMRunAsyncOnVideoProcessingQueue(void (^block)(void))
 #if !OS_OBJECT_USE_OBJC
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    if (dispatch_get_current_queue() == videoProcessingQueue)
+    if (dispatch_get_current_queue() == videoProcessingQueue && block)
 #pragma clang diagnostic pop
 #else
         if (dispatch_get_specific([AGMEAGLContext contextKey]))
 #endif
         {
-            block();static void *openGLESContextQueueKey;
-
+            block();
         }else
         {
             dispatch_async(videoProcessingQueue, block);

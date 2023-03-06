@@ -63,7 +63,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
             mCameraDevice = null;
             cameraSteady = false;
             firstFrame = false;
-            handleCaptureError(ERROR_CAMERA_DISCONNECTED);
+            handleCaptureError(ERROR_CAMERA_DISCONNECTED, null);
             changeCameraStateAndNotify(CameraState.STOPPED);
         }
 
@@ -74,7 +74,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
             mCameraDevice = null;
             cameraSteady = false;
             firstFrame = false;
-            handleCaptureError(error);
+            handleCaptureError(error, null);
         }
 
         @Override
@@ -96,7 +96,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
         }
     };
 
-    protected void handleCaptureError(int error) {
+    protected void handleCaptureError(int error, String msg) {
         if (stateListener != null) {
             int errorCode = -1;
             String errorMessage = null;
@@ -421,7 +421,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
         mPreviewHeight = closestSupportedSize.getHeight();
 
         // |mCaptureFormat| is also used to configure the ImageReader.
-        pCaptureFormat = new VideoCaptureFormat(closestSupportedSize.getWidth(),
+        pCaptureFormat = new VideoCaptureFormat(mCameraId, closestSupportedSize.getWidth(),
                 closestSupportedSize.getHeight(),
                 aeRange.max / fpsUnitFactor,
                 ImageFormat.YUV_420_888, GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
@@ -495,8 +495,48 @@ public class VideoCaptureCamera2 extends VideoCapture {
     }
 
     @Override
-    void updatePreviewOrientation() {
+    public boolean isZoomSupported() {
+        return false;
+    }
 
+    @Override
+    public int setZoom(float zoomValue) {
+        return 0;
+    }
+
+    @Override
+    public float getMaxZoom() {
+        return 0;
+    }
+
+    @Override
+    public boolean isTorchSupported() {
+        return false;
+    }
+
+    @Override
+    public int setTorchMode(boolean isOn) {
+        return 0;
+    }
+
+    @Override
+    public void setExposureCompensation(int value) {
+
+    }
+
+    @Override
+    public int getExposureCompensation() {
+        return 0;
+    }
+
+    @Override
+    public int getMinExposureCompensation() {
+        return 0;
+    }
+
+    @Override
+    public int getMaxExposureCompensation() {
+        return 0;
     }
 
     private byte[] YUV_420_888toNV21(Image image) {

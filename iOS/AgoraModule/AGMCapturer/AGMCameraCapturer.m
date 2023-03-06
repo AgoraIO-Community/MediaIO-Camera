@@ -124,7 +124,13 @@
 - (void)setExposurePoint:(CGPoint)point inPreviewFrame:(CGRect)frame {
     BOOL isFrontCamera = _cameraPosition == AVCaptureDevicePositionFront;
     float fX = point.y / frame.size.height;
+    if (isnan(fX)) {
+        fX = [UIScreen mainScreen].bounds.size.height;
+    }
     float fY = isFrontCamera ? point.x / frame.size.width : (1 - point.x / frame.size.width);
+    if (isnan(fY)) {
+        fY = [UIScreen mainScreen].bounds.size.width;
+    }
     [self setExposurePoint:CGPointMake(fX, fY)];
 }
 
@@ -193,8 +199,8 @@
 - (void)getStatusBarOrientation {
   _timeout = dispatch_time(DISPATCH_TIME_NOW, 2.0 * NSEC_PER_SEC);
   dispatch_async(dispatch_get_main_queue(), ^{
-    _orientation = [UIApplication sharedApplication].statusBarOrientation;
-    dispatch_semaphore_signal(_semaphore);
+      self->_orientation = [UIApplication sharedApplication].statusBarOrientation;
+      dispatch_semaphore_signal(self->_semaphore);
   });
   dispatch_semaphore_wait(_semaphore, _timeout);
 }
@@ -224,9 +230,9 @@
         } else {
             _timeout = dispatch_time(DISPATCH_TIME_NOW, 1.0 * NSEC_PER_SEC);
             dispatch_async(dispatch_get_main_queue(), ^{
-              _orientation = [UIApplication sharedApplication].statusBarOrientation;
+                self->_orientation = [UIApplication sharedApplication].statusBarOrientation;
               [self setRelativeVideoOrientation];
-              dispatch_semaphore_signal(_semaphore);
+                dispatch_semaphore_signal(self->_semaphore);
             });
             dispatch_semaphore_wait(_semaphore, _timeout);
         }
@@ -308,7 +314,7 @@
         self.cameraPosition = AVCaptureDevicePositionBack;
     }
     
-    AVCaptureDeviceInput *deviceInput = isFront ? self.frontCameraInput:self.backCameraInput;
+    AVCaptureDeviceInput *deviceInput = isFront ? self.frontCameraInput : self.backCameraInput;
     
     [self.captureSession beginConfiguration]; // the session to which the receiver's AVCaptureDeviceInput is added.
     if ( [deviceInput.device lockForConfiguration:NULL] ) {
@@ -326,7 +332,9 @@
             self.videoConnection.videoMirrored = isFront;
         }
     }
-    [self.captureSession startRunning];
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        [self.captureSession startRunning];
+    });
 }
 
 - (AVCaptureDevice *)cameraWithPosition:(AVCaptureDevicePosition) position {
@@ -345,6 +353,7 @@
         for (AVCaptureDevice *device in devices) {
             if ([device position] == _cameraPosition) {
                 _camera = device;
+                break;
             }
         }
     }
@@ -467,7 +476,7 @@
     if ([captureDevice lockForConfiguration:&error]) {
         //        CGFloat minISO = captureDevice.activeFormat.minISO;
         //        CGFloat maxISO = captureDevice.activeFormat.maxISO;
-        [captureDevice setExposureModeCustomWithDuration:AVCaptureExposureDurationCurrent  ISO:iso completionHandler:nil];
+        [captureDevice setExposureModeCustomWithDuration:AVCaptureExposureDurationCurrent ISO:iso completionHandler:nil];
         [captureDevice unlockForConfiguration];
     } else {
         NSLog(@"handle the error appropriately");
@@ -592,7 +601,7 @@ static int captureVideoFPS;
 //        if (self.videoConfig.pixelFormat == AGMVideoPixelFormatBGRA) {
 //            width = CVPixelBufferGetWidth(pixelBuffer);
 //        }
-			  width = CVPixelBufferGetWidth(pixelBuffer);
+        width = CVPixelBufferGetWidth(pixelBuffer);
         const size_t height = CVPixelBufferGetHeight(pixelBuffer);
         if (self.videoConfig.videoBufferType == AGMVideoBufferTypePixelBuffer) {
             AGMCVPixelBuffer *agmPixelBuffer = [[AGMCVPixelBuffer alloc] initWithPixelBuffer:pixelBuffer];
@@ -600,7 +609,9 @@ static int captureVideoFPS;
                                           height:height
                                         rotation:AGMVideoRotation_0
                                      timeStampMs:CACurrentMediaTime()*1000];
-            [self.delegate didOutputVideoFrame:agmPixelBuffer];
+            if ([self.delegate respondsToSelector:@selector(didOutputVideoFrame:)]) {
+                [self.delegate didOutputVideoFrame:agmPixelBuffer];
+            }
         } else {
             if (self.videoConfig.pixelFormat == AGMVideoPixelFormatBGRA) {
                 AGMRGBATexture *rgbaTexture = [[AGMRGBATexture alloc] init];
@@ -609,7 +620,9 @@ static int captureVideoFPS;
                                          rotation:AGMVideoRotation_0
                                       timeStampMs:CACurrentMediaTime()*1000];
                 [rgbaTexture uploadPixelBufferToTextures:pixelBuffer];
-                [self.delegate didOutputVideoFrame:rgbaTexture];
+                if ([self.delegate respondsToSelector:@selector(didOutputVideoFrame:)]) {
+                    [self.delegate didOutputVideoFrame:rgbaTexture];
+                }
             } else {
                 AGMNV12Texture *nv12Texture = [[AGMNV12Texture alloc] init];
                 [nv12Texture setParamWithWidth:width
@@ -617,7 +630,9 @@ static int captureVideoFPS;
                                          rotation:AGMVideoRotation_0
                                       timeStampMs:CACurrentMediaTime()*1000];
                 [nv12Texture uploadPixelBufferToTextures:pixelBuffer];
-                [self.delegate didOutputVideoFrame:nv12Texture];
+                if ([self.delegate respondsToSelector:@selector(didOutputVideoFrame:)]) {
+                    [self.delegate didOutputVideoFrame:nv12Texture];
+                }
             }
         }
     }

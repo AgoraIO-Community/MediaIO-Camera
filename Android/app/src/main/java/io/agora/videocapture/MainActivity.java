@@ -5,10 +5,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.ImageDecoder;
-import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -19,6 +17,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.SeekBar;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,7 +31,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.List;
 
-import io.agora.capture.framework.util.MatrixOperator;
+import io.agora.capture.framework.gles.MatrixOperator;
 import io.agora.capture.video.camera.CameraVideoManager;
 import io.agora.capture.video.camera.Constant;
 import io.agora.capture.video.camera.VideoCapture;
@@ -103,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
         // needs to load resource files from local storage.
         // The loading may block the video rendering for a
         // little while.
-        mCameraVideoManager = CameraVideoManager.create(this, null, Camera.CameraInfo.CAMERA_FACING_FRONT, true);
+        mCameraVideoManager = CameraVideoManager.create(this, null, Constant.CAMERA_FACING_FRONT, true);
 
         mCameraVideoManager.setCameraStateListener(new VideoCapture.VideoCaptureStateListener() {
             @Override
@@ -122,6 +121,11 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
+            public void onCameraOpen() {
+                runOnUiThread(() -> initCameraSettingView());
+            }
+
+            @Override
             public void onCameraClosed() {
 
             }
@@ -129,6 +133,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public VideoCapture.FrameRateRange onSelectCameraFpsRange(List<VideoCapture.FrameRateRange> supportFpsRange,
                                                                       VideoCapture.FrameRateRange selectedRange) {
+                if(Build.MODEL.startsWith("SM-G99")){
+                    VideoCapture.FrameRateRange desired = new VideoCapture.FrameRateRange(7 * 1000, 30 * 1000);
+                    if(supportFpsRange.contains(desired)){
+                        return desired;
+                    }
+                }
 
                 return null;
             }
@@ -184,6 +194,79 @@ public class MainActivity extends AppCompatActivity {
         // Can attach other consumers here,
         // For example, rtc consumer or rtmp module
         mCameraVideoManager.startCapture();
+
+    }
+
+    private void initCameraSettingView() {
+        Switch torchSwitch = findViewById(R.id.switch_torch);
+        boolean torchSupported = mCameraVideoManager.isTorchSupported();
+        torchSwitch.setVisibility(torchSupported ? View.VISIBLE: View.INVISIBLE);
+        if (torchSupported) {
+            torchSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                mCameraVideoManager.setTorchMode(isChecked);
+            });
+        }
+
+        View zoomLayout = findViewById(R.id.ll_zoom);
+        SeekBar zoomSeek = findViewById(R.id.seek_zoom);
+        TextView zoomValueTv = findViewById(R.id.tv_zoom_value);
+        boolean zoomSupported = mCameraVideoManager.isZoomSupported();
+        zoomLayout.setVisibility(zoomSupported? View.VISIBLE: View.GONE);
+        if(zoomSupported){
+            float maxZoom = mCameraVideoManager.getMaxZoom();
+            zoomSeek.setMax(100);
+            zoomValueTv.setText(0 + "");
+            zoomSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+                }
+
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {
+
+                }
+
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+                    int progress = seekBar.getProgress();
+                    float zoomValue = progress * 1.0f / 100 * maxZoom;
+                    zoomValueTv.setText(zoomValue + "");
+                    mCameraVideoManager.setZoom(zoomValue);
+                }
+            });
+        }
+
+
+        SeekBar exposureSb = findViewById(R.id.seek_exposure_compensation);
+        TextView exposureTv = findViewById(R.id.tv_exposure_compensation_value);
+        exposureSb.setMax(100);
+        int currExposure = mCameraVideoManager.getExposureCompensation();
+        int maxExposure = mCameraVideoManager.getMaxExposureCompensation();
+        int minExposure = mCameraVideoManager.getMinExposureCompensation();
+
+        exposureTv.setText(currExposure + "");
+        exposureSb.setProgress((currExposure - minExposure) * 100 / (maxExposure - minExposure));
+        exposureSb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                int progress = seekBar.getProgress();
+                float exposureValue = minExposure + progress * 1.0f / 100 * (maxExposure - minExposure);
+                exposureTv.setText(exposureValue + "");
+                mCameraVideoManager.setExposureCompensation((int) exposureValue);
+            }
+        });
+
     }
 
     private void switchVideoLayout() {
@@ -242,20 +325,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (watermarkBitmap != null) {
-            WatermarkConfig config = new WatermarkConfig(360, 640);
+            WatermarkConfig config = new WatermarkConfig(720, 1280);
             watermarkMatrixOperator = mCameraVideoManager.setWaterMark(watermarkBitmap, config);
             watermarkBitmap.recycle();
 
-            updateSeekbar(true);
-        }
-
-    }
-
-    @Override
-    public void onConfigurationChanged(@NonNull Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        if (mCameraVideoManager != null) {
-            mCameraVideoManager.updatePreviewOrientation();
+            updateWatermarkLayout(true);
         }
 
     }
@@ -264,10 +338,11 @@ public class MainActivity extends AppCompatActivity {
         mCameraVideoManager.cleanWatermark();
         watermarkMatrixOperator = null;
         // updateUI
-        updateSeekbar(false);
+        updateWatermarkLayout(false);
     }
 
-    private void updateSeekbar(boolean visible) {
+
+    private void updateWatermarkLayout(boolean visible) {
         if(watermarkMatrixOperator == null){
             visible = false;
         }
@@ -392,6 +467,47 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // rotation
+        SeekBar sliderWatermarkRotation = findViewById(R.id.slider_watermark_rotate);
+        TextView sliderWatermarkRotationValue = findViewById(R.id.slider_watermark_rotate_value);
+        sliderWatermarkRotation.setProgress((int) (watermarkMatrixOperator.getRotation() * (100.f / 360)));
+        sliderWatermarkRotationValue.setText(watermarkMatrixOperator.getRotation() + "");
+        sliderWatermarkRotation.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    float rotation = progress * (360.f / 100) ;
+                    watermarkMatrixOperator.setRotation(-rotation);
+                    sliderWatermarkRotationValue.setText(-rotation + "");
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        // FlipH
+        Switch switchFlipH = findViewById(R.id.switch_flip_h);
+        switchFlipH.setChecked(watermarkMatrixOperator.isFlipH());
+        switchFlipH.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            watermarkMatrixOperator.setFlipH(isChecked);
+        });
+
+        // FlipV
+        Switch switchFlipV = findViewById(R.id.switch_flip_v);
+        switchFlipV.setChecked(watermarkMatrixOperator.isFlipV());
+        switchFlipV.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            watermarkMatrixOperator.setFlipV(isChecked);
+        });
+
+        // scaleType
         findViewById(R.id.btn_center_crop).setOnClickListener(v -> {
             watermarkMatrixOperator.setScaleType(MatrixOperator.ScaleType.CenterCrop);
         });
