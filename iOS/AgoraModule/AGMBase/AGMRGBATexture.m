@@ -27,15 +27,18 @@
 }
 
 - (GLuint)rgbaTexture {
-    return CVOpenGLESTextureGetName(_rgbaTextureRef);
+    if (_rgbaTextureRef) {
+        return CVOpenGLESTextureGetName(_rgbaTextureRef);
+    }
+    return 0;
 }
 
 - (BOOL)loadTexture:(CVOpenGLESTextureRef *)textureOut
         pixelBuffer:(CVPixelBufferRef)pixelBuffer
          planeIndex:(int)planeIndex
         pixelFormat:(GLenum)pixelFormat {
-    const int width = CVPixelBufferGetWidth(pixelBuffer);
-    const int height = CVPixelBufferGetHeight(pixelBuffer);
+    const size_t width = CVPixelBufferGetWidth(pixelBuffer);
+    const size_t height = CVPixelBufferGetHeight(pixelBuffer);
     
     if (*textureOut) {
         CFRelease(*textureOut);
@@ -48,8 +51,8 @@
                                                                 NULL,
                                                                 GL_TEXTURE_2D,
                                                                 pixelFormat,
-                                                                width,
-                                                                height,
+                                                                (int)width,
+                                                                (int)height,
                                                                 pixelFormat,
                                                                 GL_UNSIGNED_BYTE,
                                                                 planeIndex,

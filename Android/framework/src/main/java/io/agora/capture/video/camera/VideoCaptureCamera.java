@@ -121,7 +121,7 @@ public class VideoCaptureCamera
             if (mCameraState != CameraState.STOPPED) {
                 String message = "allocate: The camera status is not stopped!";
                 LogUtil.e(TAG, message);
-                handleCaptureError(ERROR_CANNOT_OPEN_MORE, message);
+                handleCaptureError(ERROR_ALLOCATE, message);
                 return false;
             }
         }
@@ -422,7 +422,6 @@ public class VideoCaptureCamera
             if (mCameraState != CameraState.STARTED) {
                 return;
             }
-
             if (data.length != mExpectedFrameSize) {
                 LogUtil.e(TAG, "the frame size is not as expected");
                 return;
@@ -597,5 +596,38 @@ public class VideoCaptureCamera
         return supported != null && supported.indexOf(value) >= 0;
     }
 
+    @Override
+    public void setExposureCompensation(int value) {
+        if(mCamera == null){
+            return;
+        }
+        Camera.Parameters parameters = mCamera.getParameters();
+        parameters.setExposureCompensation(value);
+        mCamera.setParameters(parameters);
+    }
 
+    @Override
+    public int getExposureCompensation() {
+        if(mCamera == null){
+            return 0;
+        }
+        Camera.Parameters parameters = mCamera.getParameters();
+        return parameters.getExposureCompensation();
+    }
+
+    @Override
+    public int getMaxExposureCompensation() {
+        if(mCamera == null){
+            return 0;
+        }
+        return mCamera.getParameters().getMaxExposureCompensation();
+    }
+
+    @Override
+    public int getMinExposureCompensation() {
+        if(mCamera == null){
+            return 0;
+        }
+        return mCamera.getParameters().getMinExposureCompensation();
+    }
 }

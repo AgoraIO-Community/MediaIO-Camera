@@ -1,0 +1,6 @@
+framework module AGMCapturer {
+  umbrella header "AGMCapturer.h"
+
+  export *
+  module * { export * }
+}

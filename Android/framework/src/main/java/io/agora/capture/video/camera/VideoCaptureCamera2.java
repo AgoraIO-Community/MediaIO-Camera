@@ -96,7 +96,8 @@ public class VideoCaptureCamera2 extends VideoCapture {
         }
     };
 
-    protected void handleCaptureError(int error, String message) {
+
+    protected void handleCaptureError(int error, String msg) {
         if (stateListener != null) {
             int errorCode = -1;
             String errorMessage = null;
@@ -516,6 +517,26 @@ public class VideoCaptureCamera2 extends VideoCapture {
 
     @Override
     public int setTorchMode(boolean isOn) {
+        return 0;
+    }
+
+    @Override
+    public void setExposureCompensation(int value) {
+
+    }
+
+    @Override
+    public int getExposureCompensation() {
+        return 0;
+    }
+
+    @Override
+    public int getMinExposureCompensation() {
+        return 0;
+    }
+
+    @Override
+    public int getMaxExposureCompensation() {
         return 0;
     }
 

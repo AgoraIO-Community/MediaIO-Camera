@@ -133,6 +133,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public VideoCapture.FrameRateRange onSelectCameraFpsRange(List<VideoCapture.FrameRateRange> supportFpsRange,
                                                                       VideoCapture.FrameRateRange selectedRange) {
+                if(Build.MODEL.startsWith("SM-G99")){
+                    VideoCapture.FrameRateRange desired = new VideoCapture.FrameRateRange(7 * 1000, 30 * 1000);
+                    if(supportFpsRange.contains(desired)){
+                        return desired;
+                    }
+                }
 
                 return null;
             }
@@ -141,8 +147,8 @@ public class MainActivity extends AppCompatActivity {
         // Set camera capture configuration
         mCameraVideoManager.setPictureSize(640, 480);
         mCameraVideoManager.setFrameRate(24);
-        //mCameraVideoManager.setFacing(Constant.CAMERA_FACING_FRONT);
-        //mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
+        mCameraVideoManager.setFacing(Constant.CAMERA_FACING_FRONT);
+        mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
 
         // The preview surface is actually considered as
         // an on-screen consumer under the hood.
@@ -209,6 +215,7 @@ public class MainActivity extends AppCompatActivity {
         if(zoomSupported){
             float maxZoom = mCameraVideoManager.getMaxZoom();
             zoomSeek.setMax(100);
+            zoomValueTv.setText(0 + "");
             zoomSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -229,6 +236,37 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+
+
+        SeekBar exposureSb = findViewById(R.id.seek_exposure_compensation);
+        TextView exposureTv = findViewById(R.id.tv_exposure_compensation_value);
+        exposureSb.setMax(100);
+        int currExposure = mCameraVideoManager.getExposureCompensation();
+        int maxExposure = mCameraVideoManager.getMaxExposureCompensation();
+        int minExposure = mCameraVideoManager.getMinExposureCompensation();
+
+        exposureTv.setText(currExposure + "");
+        exposureSb.setProgress((currExposure - minExposure) * 100 / (maxExposure - minExposure));
+        exposureSb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                int progress = seekBar.getProgress();
+                float exposureValue = minExposure + progress * 1.0f / 100 * (maxExposure - minExposure);
+                exposureTv.setText(exposureValue + "");
+                mCameraVideoManager.setExposureCompensation((int) exposureValue);
+            }
+        });
+
     }
 
     private void switchVideoLayout() {
@@ -251,6 +289,9 @@ public class MainActivity extends AppCompatActivity {
         if (mCameraVideoManager != null) {
             mIsMirrored = !mIsMirrored;
             mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
+            if(watermarkMatrixOperator != null){
+                watermarkMatrixOperator.setMirror(mIsMirrored);
+            }
         }
     }
 
@@ -284,7 +325,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (watermarkBitmap != null) {
-            WatermarkConfig config = new WatermarkConfig(360, 640);
+            WatermarkConfig config = new WatermarkConfig(720, 1280);
             watermarkMatrixOperator = mCameraVideoManager.setWaterMark(watermarkBitmap, config);
             watermarkBitmap.recycle();
 
@@ -299,6 +340,7 @@ public class MainActivity extends AppCompatActivity {
         // updateUI
         updateWatermarkLayout(false);
     }
+
 
     private void updateWatermarkLayout(boolean visible) {
         if(watermarkMatrixOperator == null){

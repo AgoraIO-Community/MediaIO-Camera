@@ -21,7 +21,7 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
-    AGMEAGLContext.sharedGLContext.coreVideoTextureCache;
+//    AGMEAGLContext.sharedGLContext.coreVideoTextureCache;
 
     AGMCapturerVideoConfig *videoConfig = [AGMCapturerVideoConfig defaultConfig];
     videoConfig.sessionPreset = AVCaptureSessionPreset1280x720;
@@ -57,7 +57,9 @@
 }
 
 - (IBAction)switchCamera:(UIButton *)sender {
-    [self.capturer switchCamera];
+//    [self.capturer switchCamera];
+    RoomViewController *vc = [[RoomViewController alloc] init];
+    [self presentViewController:vc animated:YES completion:nil];
 }
 
 - (void)dealloc {

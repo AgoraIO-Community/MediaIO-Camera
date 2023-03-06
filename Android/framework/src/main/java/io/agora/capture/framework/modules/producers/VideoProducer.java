@@ -13,6 +13,37 @@ public abstract class VideoProducer implements IVideoProducer {
     private VideoChannel videoChannel;
     protected volatile Handler pChannelHandler;
 
+    private VideoCaptureFrame pendingVideoFrame = null;
+    private final Object pendingVideoFrameLock = new Object();
+    private volatile int draggingFrameCount = 0;
+
+    private final Runnable consumeVideoFrameRun = () -> {
+        VideoCaptureFrame frame;
+        synchronized (pendingVideoFrameLock){
+            if (pendingVideoFrame == null) {
+                return;
+            }
+            frame = pendingVideoFrame;
+        }
+
+
+        // The capture utilizes the environment OpenGL
+        // context for preview texture, so the capture
+        // thread and video channel thread use their
+        // shared OpenGL context.
+        // Thus updateTexImage() is valid here.
+        frame.surfaceTexture.updateTexImage();
+        if (frame.textureTransform == null) frame.textureTransform = new float[16];
+        frame.surfaceTexture.getTransformMatrix(frame.textureTransform);
+
+        if (videoChannel != null) {
+            videoChannel.pushVideoFrame(frame);
+        }
+        synchronized (pendingVideoFrameLock){
+            pendingVideoFrame = null;
+        }
+    };
+
     @Override
     public void connectChannel(int channelId) {
         videoChannel = VideoModule.instance().connectProducer(this, channelId);
@@ -25,35 +56,38 @@ public abstract class VideoProducer implements IVideoProducer {
             return;
         }
 
-        pChannelHandler.post(() -> {
-            try {
-                // The capture utilizes the environment OpenGL
-                // context for preview texture, so the capture
-                // thread and video channel thread use their
-                // shared OpenGL context.
-                // Thus updateTexImage() is valid here.
-                frame.surfaceTexture.updateTexImage();
-                if (frame.textureTransform == null) frame.textureTransform = new float[16];
-                frame.surfaceTexture.getTransformMatrix(frame.textureTransform);
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                return;
+        synchronized (pendingVideoFrameLock) {
+            if (pendingVideoFrame == null) {
+                if (draggingFrameCount != 0) {
+                    LogUtil.d(TAG, "dragging frame count: " + draggingFrameCount);
+                    draggingFrameCount = 0;
+                }
+                pendingVideoFrame = frame;
+                pChannelHandler.removeCallbacks(consumeVideoFrameRun);
+                pChannelHandler.post(consumeVideoFrameRun);
+            } else {
+                draggingFrameCount++;
             }
-
-            if (videoChannel != null) {
-                videoChannel.pushVideoFrame(frame);
-            }
-        });
+        }
     }
 
     @Override
     public void disconnect() {
         LogUtil.i(TAG, "disconnect");
 
+        synchronized (pendingVideoFrameLock){
+            pendingVideoFrame = null;
+        }
+
+        if(pChannelHandler != null){
+            pChannelHandler.removeCallbacks(consumeVideoFrameRun);
+            pChannelHandler = null;
+        }
+
         if (videoChannel != null) {
             videoChannel.disconnectProducer();
             videoChannel = null;
         }
     }
+
 }
