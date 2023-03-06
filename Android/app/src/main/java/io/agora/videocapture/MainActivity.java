@@ -133,6 +133,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public VideoCapture.FrameRateRange onSelectCameraFpsRange(List<VideoCapture.FrameRateRange> supportFpsRange,
                                                                       VideoCapture.FrameRateRange selectedRange) {
+                // 对特定机型进行适配，以处理在有些帧率下采集画面偏暗的问题
                 if(Build.MODEL.startsWith("SM-G99")){
                     VideoCapture.FrameRateRange desired = new VideoCapture.FrameRateRange(7 * 1000, 30 * 1000);
                     if(supportFpsRange.contains(desired)){
@@ -140,6 +141,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
+                // 修改计算算法成webrtc的方式，这也是1.1.6以前的默认算法，好处的兼容性好
+                // return CameraUtils.getClosestFrameRateRangeWebrtc(supportFpsRange, 24);
+
+                // 返回null会使用内置处理法，计算更加准确
                 return null;
             }
         });

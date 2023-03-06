@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 import io.agora.capture.framework.gles.core.GlUtil;
+import io.agora.capture.framework.util.CameraUtils;
 import io.agora.capture.framework.util.LogUtil;
 
 
@@ -216,7 +217,7 @@ public class VideoCaptureCamera
         // API fps ranges are scaled up x1000 to avoid floating point.
         int frameRateScaled = frameRate * 1000;
         FrameRateRange chosenRange =
-                getClosestFrameRateRange(ranges, frameRateScaled);
+                CameraUtils.getClosestFrameRateRangeExactly(ranges, frameRateScaled);
 
         if(stateListener != null){
             FrameRateRange reSelectFpsRange = stateListener.onSelectCameraFpsRange(ranges, chosenRange);
