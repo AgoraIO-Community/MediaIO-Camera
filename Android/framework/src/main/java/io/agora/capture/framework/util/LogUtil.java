@@ -29,6 +29,14 @@ public class LogUtil {
             }
         }
     }
+
+    public static void e(Object obj, Object message, Throwable exception) {
+        if(DEBUG) {
+            if (obj != null && message != null) {
+                Log.e(obj instanceof String ? (String) obj : obj.getClass().getSimpleName(), message.toString().trim(), exception);
+            }
+        }
+    }
  
     public static void d(Object obj, Object message) {
         if(DEBUG) {
