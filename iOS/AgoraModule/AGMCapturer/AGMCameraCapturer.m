@@ -33,6 +33,7 @@
 @property (nonatomic, copy) dispatch_queue_t videoCaptureQueue;
 @property (nonatomic, assign) CGPoint focusPoint;
 @property (nonatomic, assign) CGPoint exposurePoint;
+@property (nonatomic, assign) AVCaptureDevicePosition preCameraPosition;
 @end
 
 @implementation AGMCameraCapturer
@@ -46,6 +47,7 @@
         }
         self.cameraPosition = self.videoConfig.cameraPosition;
         self.mSessionPreset = self.videoConfig.sessionPreset;
+        self.preCameraPosition = self.cameraPosition;
         if (self.videoConfig.pixelFormat == AGMVideoPixelFormatBGRA) {
             self.captureFormat = kCVPixelFormatType_32BGRA;
         } else {
@@ -157,52 +159,52 @@
 
 #if TARGET_OS_IPHONE
 - (void)statusBarOrientationDidChange:(NSNotification*)notification {
-  _orientationHasChanged = YES;
-  _orientation = [UIApplication sharedApplication].statusBarOrientation;
-  if (self.videoConfig.autoRotateBuffers) {
-      [self setRelativeVideoOrientation];
-  }
+    _orientationHasChanged = YES;
+    _orientation = [UIApplication sharedApplication].statusBarOrientation;
+    if (self.videoConfig.autoRotateBuffers) {
+        [self setRelativeVideoOrientation];
+    }
 }
 #endif
 
 - (void)setRelativeVideoOrientation {
-  if (!self.videoConnection.supportsVideoOrientation) {
-    return;
-  }
+    if (!self.videoConnection.supportsVideoOrientation) {
+        return;
+    }
 #if TARGET_OS_OSX
-  self.videoConnection.videoOrientation = AVCaptureVideoOrientationLandscapeRight;
-  return;
+    self.videoConnection.videoOrientation = AVCaptureVideoOrientationLandscapeRight;
+    return;
 #else
-  switch (_orientation) {
-    case UIInterfaceOrientationPortrait:
-      self.videoConnection.videoOrientation = AVCaptureVideoOrientationPortrait;
-      break;
-    case UIInterfaceOrientationPortraitUpsideDown:
-      self.videoConnection.videoOrientation = AVCaptureVideoOrientationPortraitUpsideDown;
-      break;
-    case UIInterfaceOrientationLandscapeLeft:
-      self.videoConnection.videoOrientation = AVCaptureVideoOrientationLandscapeLeft;
-      break;
-    case UIInterfaceOrientationLandscapeRight:
-      self.videoConnection.videoOrientation = AVCaptureVideoOrientationLandscapeRight;
-      break;
-    case UIInterfaceOrientationUnknown:
-      if (!_orientationHasChanged) {
-        self.videoConnection.videoOrientation = AVCaptureVideoOrientationPortrait;
-      }
-      break;
-  }
+    switch (_orientation) {
+        case UIInterfaceOrientationPortrait:
+            self.videoConnection.videoOrientation = AVCaptureVideoOrientationPortrait;
+            break;
+        case UIInterfaceOrientationPortraitUpsideDown:
+            self.videoConnection.videoOrientation = AVCaptureVideoOrientationPortraitUpsideDown;
+            break;
+        case UIInterfaceOrientationLandscapeLeft:
+            self.videoConnection.videoOrientation = AVCaptureVideoOrientationLandscapeLeft;
+            break;
+        case UIInterfaceOrientationLandscapeRight:
+            self.videoConnection.videoOrientation = AVCaptureVideoOrientationLandscapeRight;
+            break;
+        case UIInterfaceOrientationUnknown:
+            if (!_orientationHasChanged) {
+                self.videoConnection.videoOrientation = AVCaptureVideoOrientationPortrait;
+            }
+            break;
+    }
 #endif
 }
 
 #if TARGET_OS_IPHONE
 - (void)getStatusBarOrientation {
-  _timeout = dispatch_time(DISPATCH_TIME_NOW, 2.0 * NSEC_PER_SEC);
-  dispatch_async(dispatch_get_main_queue(), ^{
-      self->_orientation = [UIApplication sharedApplication].statusBarOrientation;
-      dispatch_semaphore_signal(self->_semaphore);
-  });
-  dispatch_semaphore_wait(_semaphore, _timeout);
+    _timeout = dispatch_time(DISPATCH_TIME_NOW, 2.0 * NSEC_PER_SEC);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        self->_orientation = [UIApplication sharedApplication].statusBarOrientation;
+        dispatch_semaphore_signal(self->_semaphore);
+    });
+    dispatch_semaphore_wait(_semaphore, _timeout);
 }
 #endif
 
@@ -231,7 +233,7 @@
             _timeout = dispatch_time(DISPATCH_TIME_NOW, 1.0 * NSEC_PER_SEC);
             dispatch_async(dispatch_get_main_queue(), ^{
                 self->_orientation = [UIApplication sharedApplication].statusBarOrientation;
-              [self setRelativeVideoOrientation];
+                [self setRelativeVideoOrientation];
                 dispatch_semaphore_signal(self->_semaphore);
             });
             dispatch_semaphore_wait(_semaphore, _timeout);
@@ -239,7 +241,7 @@
 #else
         [self setRelativeVideoOrientation];
 #endif
-
+        
         if (self.videoConfig.videoMirrored) {
             if (self.videoConnection.supportsVideoMirroring && self.isFrontCamera) {
                 self.videoConnection.videoMirrored = YES;
@@ -299,41 +301,45 @@
 }
 
 -(void)changeCameraInputDeviceisFront:(BOOL)isFront {
-    [self.captureSession stopRunning];
-    if (isFront) {
-        [self.captureSession removeInput:self.backCameraInput];
-        if ([self.captureSession canAddInput:self.frontCameraInput]) {
-            [self.captureSession addInput:self.frontCameraInput];
-        }
-        self.cameraPosition = AVCaptureDevicePositionFront;
-    } else {
-        [self.captureSession removeInput:self.frontCameraInput];
-        if ([self.captureSession canAddInput:self.backCameraInput]) {
-            [self.captureSession addInput:self.backCameraInput];
-        }
-        self.cameraPosition = AVCaptureDevicePositionBack;
-    }
-    
-    AVCaptureDeviceInput *deviceInput = isFront ? self.frontCameraInput : self.backCameraInput;
-    
-    [self.captureSession beginConfiguration]; // the session to which the receiver's AVCaptureDeviceInput is added.
-    if ( [deviceInput.device lockForConfiguration:NULL] ) {
-        [deviceInput.device setActiveVideoMinFrameDuration:CMTimeMake(1, (int32_t)self.videoConfig.fps)];
-        [deviceInput.device setActiveVideoMaxFrameDuration:CMTimeMake(1, (int32_t)self.videoConfig.fps)];
-        [deviceInput.device unlockForConfiguration];
-    }
-    [self.captureSession commitConfiguration];
-    
-    if (self.videoConfig.autoRotateBuffers) {
-        [self setRelativeVideoOrientation];
-    }
-    if (self.videoConfig.videoMirrored) {
-        if (self.videoConnection.supportsVideoMirroring) {
-            self.videoConnection.videoMirrored = isFront;
-        }
-    }
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        [self.captureSession stopRunning];
+        if (isFront) {
+            [self.captureSession removeInput:self.backCameraInput];
+            if ([self.captureSession canAddInput:self.frontCameraInput]) {
+                [self.captureSession addInput:self.frontCameraInput];
+            }
+            self.cameraPosition = AVCaptureDevicePositionFront;
+        } else {
+            [self.captureSession removeInput:self.frontCameraInput];
+            if ([self.captureSession canAddInput:self.backCameraInput]) {
+                [self.captureSession addInput:self.backCameraInput];
+            }
+            self.cameraPosition = AVCaptureDevicePositionBack;
+        }
+        
+        AVCaptureDeviceInput *deviceInput = isFront ? self.frontCameraInput : self.backCameraInput;
+        
+        [self.captureSession beginConfiguration]; // the session to which the receiver's AVCaptureDeviceInput is added.
+        if ( [deviceInput.device lockForConfiguration:NULL] ) {
+            [deviceInput.device setActiveVideoMinFrameDuration:CMTimeMake(1, (int32_t)self.videoConfig.fps)];
+            [deviceInput.device setActiveVideoMaxFrameDuration:CMTimeMake(1, (int32_t)self.videoConfig.fps)];
+            [deviceInput.device unlockForConfiguration];
+        }
+        [self.captureSession commitConfiguration];
+        
+        if (self.videoConfig.autoRotateBuffers) {
+            [self setRelativeVideoOrientation];
+        }
+        if (self.videoConfig.videoMirrored) {
+            if (self.videoConnection.supportsVideoMirroring) {
+                self.videoConnection.videoMirrored = isFront;
+            }
+        }
         [self.captureSession startRunning];
+        double delay = self.videoConfig.isLastFrame == YES ? 0.13 : 0;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            self.preCameraPosition = self.cameraPosition;
+        });
     });
 }
 
@@ -493,10 +499,10 @@
         }
         _captureSession.sessionPreset = sessionPreset;
         _mSessionPreset = sessionPreset;
-
+        
         [self.captureSession startRunning];
-
-       
+        
+        
         return YES;
     }
     return NO;
@@ -598,40 +604,46 @@ static int captureVideoFPS;
     if ([self.delegate respondsToSelector:@selector(didOutputVideoFrame:)]) {
         CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
         size_t width = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0);
-//        if (self.videoConfig.pixelFormat == AGMVideoPixelFormatBGRA) {
-//            width = CVPixelBufferGetWidth(pixelBuffer);
-//        }
+        //        if (self.videoConfig.pixelFormat == AGMVideoPixelFormatBGRA) {
+        //            width = CVPixelBufferGetWidth(pixelBuffer);
+        //        }
         width = CVPixelBufferGetWidth(pixelBuffer);
         const size_t height = CVPixelBufferGetHeight(pixelBuffer);
         if (self.videoConfig.videoBufferType == AGMVideoBufferTypePixelBuffer) {
             AGMCVPixelBuffer *agmPixelBuffer = [[AGMCVPixelBuffer alloc] initWithPixelBuffer:pixelBuffer];
             [agmPixelBuffer setParamWithWidth:width
-                                          height:height
-                                        rotation:AGMVideoRotation_0
-                                     timeStampMs:CACurrentMediaTime()*1000];
+                                       height:height
+                                     rotation:AGMVideoRotation_0
+                                  timeStampMs:CACurrentMediaTime()*1000];
             if ([self.delegate respondsToSelector:@selector(didOutputVideoFrame:)]) {
-                [self.delegate didOutputVideoFrame:agmPixelBuffer];
+                if (self.cameraPosition == self.preCameraPosition) {
+                    [self.delegate didOutputVideoFrame:agmPixelBuffer];
+                }
             }
         } else {
             if (self.videoConfig.pixelFormat == AGMVideoPixelFormatBGRA) {
                 AGMRGBATexture *rgbaTexture = [[AGMRGBATexture alloc] init];
                 [rgbaTexture setParamWithWidth:width
-                                           height:height
-                                         rotation:AGMVideoRotation_0
-                                      timeStampMs:CACurrentMediaTime()*1000];
+                                        height:height
+                                      rotation:AGMVideoRotation_0
+                                   timeStampMs:CACurrentMediaTime()*1000];
                 [rgbaTexture uploadPixelBufferToTextures:pixelBuffer];
                 if ([self.delegate respondsToSelector:@selector(didOutputVideoFrame:)]) {
-                    [self.delegate didOutputVideoFrame:rgbaTexture];
+                    if (self.cameraPosition == self.preCameraPosition) {
+                        [self.delegate didOutputVideoFrame:rgbaTexture];
+                    }
                 }
             } else {
                 AGMNV12Texture *nv12Texture = [[AGMNV12Texture alloc] init];
                 [nv12Texture setParamWithWidth:width
-                                           height:height
-                                         rotation:AGMVideoRotation_0
-                                      timeStampMs:CACurrentMediaTime()*1000];
+                                        height:height
+                                      rotation:AGMVideoRotation_0
+                                   timeStampMs:CACurrentMediaTime()*1000];
                 [nv12Texture uploadPixelBufferToTextures:pixelBuffer];
                 if ([self.delegate respondsToSelector:@selector(didOutputVideoFrame:)]) {
-                    [self.delegate didOutputVideoFrame:nv12Texture];
+                    if (self.cameraPosition == self.preCameraPosition) {
+                        [self.delegate didOutputVideoFrame:nv12Texture];
+                    }
                 }
             }
         }
