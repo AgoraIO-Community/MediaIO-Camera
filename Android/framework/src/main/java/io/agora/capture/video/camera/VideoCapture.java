@@ -10,8 +10,6 @@ import android.opengl.EGLContext;
 import android.os.Handler;
 import android.os.Looper;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import io.agora.capture.framework.modules.producers.VideoProducer;
@@ -188,38 +186,6 @@ public abstract class VideoCapture extends VideoProducer {
             fpsUtil = null;
         }
         deallocate(true);
-    }
-
-    static FrameRateRange getClosestFrameRateRange(
-            final List<FrameRateRange> frameRateRanges, int targetFrameRate) {
-
-        List<FrameRateRange> includeRanges = new ArrayList<>();
-        for (FrameRateRange frameRateRange : frameRateRanges) {
-            if(frameRateRange.min <= targetFrameRate && frameRateRange.max >= targetFrameRate){
-                includeRanges.add(frameRateRange);
-            }
-        }
-
-        if(includeRanges.size() == 0){
-            if(targetFrameRate < frameRateRanges.get(0).min){
-                return Collections.min(frameRateRanges, (o1, o2) -> o1.min - o2.min);
-            }else{
-                return Collections.max(frameRateRanges, (o1, o2) -> o1.max + o1.min - o2.max - o2.min);
-            }
-        }
-
-        int minIndex = 0;
-        int minDiff = Integer.MAX_VALUE;
-        for (int i = 0; i < includeRanges.size(); i++) {
-            FrameRateRange frameRateRange = includeRanges.get(i);
-            int diff = Math.abs(frameRateRange.min - targetFrameRate) + Math.abs(frameRateRange.max - targetFrameRate);
-            if(diff < minDiff){
-                minDiff = diff;
-                minIndex = i;
-            }
-        }
-
-        return includeRanges.get(minIndex);
     }
 
     protected abstract int getNumberOfCameras();

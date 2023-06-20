@@ -13,7 +13,7 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.view.SurfaceView;
+import android.view.TextureView;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.SeekBar;
@@ -133,6 +133,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public VideoCapture.FrameRateRange onSelectCameraFpsRange(List<VideoCapture.FrameRateRange> supportFpsRange,
                                                                       VideoCapture.FrameRateRange selectedRange) {
+                // 对特定机型进行适配，以处理在有些帧率下采集画面偏暗的问题
                 if(Build.MODEL.startsWith("SM-G99")){
                     VideoCapture.FrameRateRange desired = new VideoCapture.FrameRateRange(7 * 1000, 30 * 1000);
                     if(supportFpsRange.contains(desired)){
@@ -140,6 +141,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
+                // 修改计算算法成webrtc的方式，这也是1.1.6以前的默认算法，好处的兼容性好
+                // return CameraUtils.getClosestFrameRateRangeWebrtc(supportFpsRange, 24);
+
+                // 返回null会使用内置处理法，计算更加准确
                 return null;
             }
         });
@@ -147,15 +152,17 @@ public class MainActivity extends AppCompatActivity {
         // Set camera capture configuration
         mCameraVideoManager.setPictureSize(640, 480);
         mCameraVideoManager.setFrameRate(24);
-        //mCameraVideoManager.setFacing(Constant.CAMERA_FACING_FRONT);
-        //mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
+        mCameraVideoManager.setFacing(Constant.CAMERA_FACING_FRONT);
+        mCameraVideoManager.setLocalPreviewMirror(toMirrorMode(mIsMirrored));
 
         // The preview surface is actually considered as
         // an on-screen consumer under the hood.
-        mVideoSurface = new SurfaceView(this);
+        TextureView textureView = new TextureView(this);
+        mVideoSurface = new FrameLayout(this);
+        ((FrameLayout)mVideoSurface).addView(textureView);
         mVideoLayout = findViewById(R.id.video_layout);
         mVideoLayout.addView(mVideoSurface);
-        mCameraVideoManager.setLocalPreview((SurfaceView) mVideoSurface, MatrixOperator.ScaleType.CenterCrop, "Surface1");
+        mCameraVideoManager.setLocalPreview(textureView, MatrixOperator.ScaleType.CenterCrop, "Surface1");
 
         mSmallVideoLayout = findViewById(R.id.small_video_layout);
         mSmallVideoLayout.setOnLongClickListener(new View.OnLongClickListener() {
@@ -211,11 +218,12 @@ public class MainActivity extends AppCompatActivity {
         SeekBar zoomSeek = findViewById(R.id.seek_zoom);
         TextView zoomValueTv = findViewById(R.id.tv_zoom_value);
         boolean zoomSupported = mCameraVideoManager.isZoomSupported();
-        zoomLayout.setVisibility(zoomSupported? View.VISIBLE: View.GONE);
+        zoomLayout.setVisibility(zoomSupported? View.VISIBLE: View.INVISIBLE);
         if(zoomSupported){
             float maxZoom = mCameraVideoManager.getMaxZoom();
             zoomSeek.setMax(100);
             zoomValueTv.setText(0 + "");
+            zoomSeek.setProgress(0);
             zoomSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -246,7 +254,9 @@ public class MainActivity extends AppCompatActivity {
         int minExposure = mCameraVideoManager.getMinExposureCompensation();
 
         exposureTv.setText(currExposure + "");
-        exposureSb.setProgress((currExposure - minExposure) * 100 / (maxExposure - minExposure));
+        if (maxExposure > minExposure) {
+            exposureSb.setProgress((currExposure - minExposure) * 100 / (maxExposure - minExposure));
+        }
         exposureSb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -337,6 +347,7 @@ public class MainActivity extends AppCompatActivity {
         // updateUI
         updateWatermarkLayout(false);
     }
+
 
     private void updateWatermarkLayout(boolean visible) {
         if(watermarkMatrixOperator == null){

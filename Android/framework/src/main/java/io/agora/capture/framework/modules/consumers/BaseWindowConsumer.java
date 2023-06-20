@@ -183,6 +183,10 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
             return;
         }
 
+        if (frame.textureId <= 0) {
+            return;
+        }
+
         if (needResetSurface) {
             if (drawingEglSurface != null && drawingEglSurface != EGL14.EGL_NO_SURFACE) {
                 eglCore.releaseSurface(drawingEglSurface);

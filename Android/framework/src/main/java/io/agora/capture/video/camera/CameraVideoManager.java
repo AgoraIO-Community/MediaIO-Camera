@@ -74,8 +74,10 @@ public class CameraVideoManager {
     }
 
     public static CameraVideoManager getInstance(){
-        if(sInstance == null){
-            throw new IllegalStateException("The instance of cameraVideoManager has not been created yet, please call create(...) firstly.");
+        synchronized (CameraVideoManager.class){
+            if(sInstance == null){
+                throw new IllegalStateException("The instance of cameraVideoManager has not been created yet, please call create(...) firstly.");
+            }
         }
         return sInstance;
     }
