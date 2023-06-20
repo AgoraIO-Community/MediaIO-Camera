@@ -42,6 +42,8 @@ typedef NS_ENUM(NSInteger, AGMVideoBufferType) {
 @property (nonatomic, assign) BOOL autoRotateBuffers;
 /** Whether to mirror the video or not，only for front-facing cameras. Default value is YES.*/
 @property (nonatomic, assign) BOOL videoMirrored;
+/** Switch cameras to preserve the last frame*/
+@property (nonatomic, assign) BOOL isLastFrame;
 @end
 
 NS_ASSUME_NONNULL_END
