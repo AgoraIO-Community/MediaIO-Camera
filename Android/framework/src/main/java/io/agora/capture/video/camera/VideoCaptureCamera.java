@@ -45,6 +45,7 @@ public class VideoCaptureCamera
     private final Object mCameraStateLock = new Object();
     private CaptureErrorCallback mErrorCallback = new CaptureErrorCallback();
     private volatile CameraState mCameraState = CameraState.STOPPED;
+    private volatile int skipFrame = 0;
 
     private Camera.CameraInfo getCameraInfo(int id) {
         Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
@@ -311,6 +312,8 @@ public class VideoCaptureCamera
             mCameraState = CameraState.OPENING;
         }
 
+        skipFrame = 5;
+
         return true;
     }
 
@@ -424,6 +427,11 @@ public class VideoCaptureCamera
             }
             if (data.length != mExpectedFrameSize) {
                 LogUtil.e(TAG, "the frame size is not as expected");
+                return;
+            }
+
+            if (skipFrame > 0) {
+                skipFrame--;
                 return;
             }
 

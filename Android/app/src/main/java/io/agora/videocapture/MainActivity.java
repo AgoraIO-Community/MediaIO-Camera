@@ -13,7 +13,7 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.view.SurfaceView;
+import android.view.TextureView;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.SeekBar;
@@ -157,10 +157,12 @@ public class MainActivity extends AppCompatActivity {
 
         // The preview surface is actually considered as
         // an on-screen consumer under the hood.
-        mVideoSurface = new SurfaceView(this);
+        TextureView textureView = new TextureView(this);
+        mVideoSurface = new FrameLayout(this);
+        ((FrameLayout)mVideoSurface).addView(textureView);
         mVideoLayout = findViewById(R.id.video_layout);
         mVideoLayout.addView(mVideoSurface);
-        mCameraVideoManager.setLocalPreview((SurfaceView) mVideoSurface, MatrixOperator.ScaleType.CenterCrop, "Surface1");
+        mCameraVideoManager.setLocalPreview(textureView, MatrixOperator.ScaleType.CenterCrop, "Surface1");
 
         mSmallVideoLayout = findViewById(R.id.small_video_layout);
         mSmallVideoLayout.setOnLongClickListener(new View.OnLongClickListener() {
