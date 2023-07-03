@@ -142,12 +142,10 @@ public class VideoCaptureCamera
             }
             if (curCameraFacing == Constant.CAMERA_FACING_FRONT && info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
                 mCameraId = i;
-                break;
             }
 
             if (curCameraFacing == Constant.CAMERA_FACING_BACK && info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
                 mCameraId = i;
-                break;
             }
         }
 
