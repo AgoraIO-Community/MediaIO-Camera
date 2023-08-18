@@ -33,6 +33,7 @@ public abstract class VideoCapture extends VideoProducer {
     public static final int ERROR_CAMERA_DISCONNECTED = 6;
     public static final int ERROR_CAMERA_FREEZED = 7;
     public static final int ERROR_ALLOCATE = 8;
+    public static final int ERROR_CONSUME_VIDEO_FRAME = 9;
 
     /**
      * Common class for storing a frameRate range. Values should be multiplied by 1000.
@@ -259,6 +260,14 @@ public abstract class VideoCapture extends VideoProducer {
             }
             LogUtil.i(TAG, "first capture frame detected");
             firstFrame = false;
+        }
+    }
+
+    @Override
+    protected void onConsumeVideoFrameError(Exception e) {
+        super.onConsumeVideoFrameError(e);
+        if (stateListener != null) {
+            stateListener.onCameraCaptureError(ERROR_CONSUME_VIDEO_FRAME, e.toString());
         }
     }
 
