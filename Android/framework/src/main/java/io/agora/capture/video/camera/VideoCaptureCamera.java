@@ -4,6 +4,11 @@
 
 package io.agora.capture.video.camera;
 
+import static io.agora.capture.video.camera.Constant.ERROR_ALLOCATE;
+import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_SERVICE;
+import static io.agora.capture.video.camera.Constant.ERROR_IN_USE;
+import static io.agora.capture.video.camera.Constant.ERROR_UNKNOWN;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.ImageFormat;

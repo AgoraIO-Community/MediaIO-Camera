@@ -55,6 +55,7 @@ public final class EglCore {
     private EGLContext mEGLContext = EGL14.EGL_NO_CONTEXT;
     private EGLConfig mEGLConfig = null;
     private int mGlVersion = -1;
+    private ErrorCallback errorCallback;
 
 
     /**
@@ -198,6 +199,7 @@ public final class EglCore {
         mEGLDisplay = EGL14.EGL_NO_DISPLAY;
         mEGLContext = EGL14.EGL_NO_CONTEXT;
         mEGLConfig = null;
+        errorCallback = null;
     }
 
     @Override
@@ -384,7 +386,19 @@ public final class EglCore {
     private void checkEglError(String msg) {
         int error;
         if ((error = EGL14.eglGetError()) != EGL14.EGL_SUCCESS) {
+            if(errorCallback != null){
+                errorCallback.onEglError(error, msg);
+                return;
+            }
             throw new RuntimeException(msg + ": EGL error: 0x" + Integer.toHexString(error));
         }
+    }
+
+    public void setErrorCallback(ErrorCallback callback){
+        this.errorCallback = callback;
+    }
+
+    public interface ErrorCallback {
+        void onEglError(int code, String msg);
     }
 }
