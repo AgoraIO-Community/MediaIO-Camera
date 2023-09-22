@@ -5,6 +5,8 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import java.lang.ref.WeakReference;
+
 import io.agora.capture.framework.gles.MatrixOperator;
 import io.agora.capture.framework.modules.channels.VideoChannel;
 import io.agora.capture.framework.util.LogUtil;
@@ -14,18 +16,18 @@ import io.agora.capture.video.camera.VideoModule;
 public class SurfaceViewConsumer extends BaseWindowConsumer implements SurfaceHolder.Callback {
     private static final String TAG = SurfaceViewConsumer.class.getSimpleName();
 
-    private SurfaceView mSurfaceView;
+    private final WeakReference<SurfaceView> mSurfaceView;
     private int mWidth;
     private int mHeight;
 
     public SurfaceViewConsumer(SurfaceView surfaceView, @MatrixOperator.ScaleType int scaleType) {
         super(VideoModule.instance(), true, scaleType);
-        mSurfaceView = surfaceView;
+        mSurfaceView = new WeakReference<>(surfaceView);
     }
 
     @Override
     public void onConsumeFrame(VideoCaptureFrame frame, VideoChannel.ChannelContext context) {
-        if (mSurfaceView == null) {
+        if (mSurfaceView == null || mSurfaceView.get() == null) {
             return;
         }
 
@@ -34,8 +36,8 @@ public class SurfaceViewConsumer extends BaseWindowConsumer implements SurfaceHo
 
     @Override
     public Object getDrawingTarget() {
-        if (mSurfaceView != null) {
-            SurfaceHolder holder = mSurfaceView.getHolder();
+        if (mSurfaceView != null && mSurfaceView.get() != null) {
+            SurfaceHolder holder = mSurfaceView.get().getHolder();
             if (holder != null) {
                 Surface surface = holder.getSurface();
                 if (surface != null && surface.isValid()) {
@@ -48,12 +50,12 @@ public class SurfaceViewConsumer extends BaseWindowConsumer implements SurfaceHo
 
     @Override
     public int onMeasuredWidth() {
-        return mSurfaceView != null ? mSurfaceView.getMeasuredWidth() : mWidth;
+        return mSurfaceView != null && mSurfaceView.get() != null ? mSurfaceView.get().getMeasuredWidth() : mWidth;
     }
 
     @Override
     public int onMeasuredHeight() {
-        return mSurfaceView != null ? mSurfaceView.getMeasuredHeight() : mHeight;
+        return mSurfaceView != null && mSurfaceView.get() != null ? mSurfaceView.get().getMeasuredHeight() : mHeight;
     }
 
     @Override
