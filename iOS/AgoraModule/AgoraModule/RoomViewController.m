@@ -25,9 +25,10 @@
 
     AGMCapturerVideoConfig *videoConfig = [AGMCapturerVideoConfig defaultConfig];
     videoConfig.sessionPreset = AVCaptureSessionPreset1280x720;
-    videoConfig.fps = 30;
+    videoConfig.fps = 15;
     videoConfig.pixelFormat = AGMVideoPixelFormatBGRA;
     videoConfig.videoMirrored = YES;
+    videoConfig.isLastFrame = YES;
 
     self.capturer = [[AGMCameraCapturer alloc] initWithConfig:videoConfig];
     self.capturer.delegate = self;
@@ -57,9 +58,9 @@
 }
 
 - (IBAction)switchCamera:(UIButton *)sender {
-//    [self.capturer switchCamera];
-    RoomViewController *vc = [[RoomViewController alloc] init];
-    [self presentViewController:vc animated:YES completion:nil];
+    [self.capturer switchCamera];
+//    RoomViewController *vc = [[RoomViewController alloc] init];
+//    [self presentViewController:vc animated:YES completion:nil];
 }
 
 - (void)dealloc {

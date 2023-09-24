@@ -4,6 +4,13 @@
 
 package io.agora.capture.video.camera;
 
+import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_DEVICE;
+import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_DISABLED;
+import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_DISCONNECTED;
+import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_SERVICE;
+import static io.agora.capture.video.camera.Constant.ERROR_CANNOT_OPEN_MORE;
+import static io.agora.capture.video.camera.Constant.ERROR_IN_USE;
+
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.ImageFormat;
@@ -33,6 +40,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import io.agora.capture.framework.gles.core.GlUtil;
+import io.agora.capture.framework.util.CameraUtils;
 import io.agora.capture.framework.util.LogUtil;
 
 /**
@@ -95,6 +103,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
             }
         }
     };
+
 
     protected void handleCaptureError(int error, String msg) {
         if (stateListener != null) {
@@ -412,7 +421,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
                     range.getLower() * fpsUnitFactor, range.getUpper() * fpsUnitFactor));
         }
         final FrameRateRange aeRange =
-                getClosestFrameRateRange(ranges, frameRate * 1000);
+                CameraUtils.getClosestFrameRateRangeExactly(ranges, frameRate * 1000);
         mAeFpsRange = new Range<Integer>(
                 aeRange.min / fpsUnitFactor, aeRange.max / fpsUnitFactor);
         LogUtil.d(TAG, "allocate: fps set to [" + mAeFpsRange.getLower() + "-" + mAeFpsRange.getUpper() + "]");
