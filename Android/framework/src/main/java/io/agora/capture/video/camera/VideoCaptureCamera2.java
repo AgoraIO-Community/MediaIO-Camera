@@ -4,6 +4,13 @@
 
 package io.agora.capture.video.camera;
 
+import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_DEVICE;
+import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_DISABLED;
+import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_DISCONNECTED;
+import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_SERVICE;
+import static io.agora.capture.video.camera.Constant.ERROR_CANNOT_OPEN_MORE;
+import static io.agora.capture.video.camera.Constant.ERROR_IN_USE;
+
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.ImageFormat;
