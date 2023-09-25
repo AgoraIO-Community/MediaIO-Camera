@@ -4,6 +4,11 @@
 
 package io.agora.capture.video.camera;
 
+import static io.agora.capture.video.camera.Constant.ERROR_ALLOCATE;
+import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_SERVICE;
+import static io.agora.capture.video.camera.Constant.ERROR_IN_USE;
+import static io.agora.capture.video.camera.Constant.ERROR_UNKNOWN;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.ImageFormat;
@@ -12,8 +17,6 @@ import android.hardware.Camera;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.util.Log;
-import android.view.Surface;
-import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
 
@@ -23,6 +26,7 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 import io.agora.capture.framework.gles.core.GlUtil;
+import io.agora.capture.framework.util.CameraUtils;
 import io.agora.capture.framework.util.LogUtil;
 
 
@@ -46,6 +50,7 @@ public class VideoCaptureCamera
     private final Object mCameraStateLock = new Object();
     private CaptureErrorCallback mErrorCallback = new CaptureErrorCallback();
     private volatile CameraState mCameraState = CameraState.STOPPED;
+    private volatile int skipFrame = 0;
 
     private Camera.CameraInfo getCameraInfo(int id) {
         Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
@@ -60,12 +65,14 @@ public class VideoCaptureCamera
 
     private static Camera.Parameters getCameraParameters(
             Camera camera) {
+        if(camera == null){
+            return null;
+        }
         Camera.Parameters parameters;
         try {
             parameters = camera.getParameters();
         } catch (RuntimeException ex) {
-            LogUtil.e(TAG, "getCameraParameters: android.hardware.Camera.getParameters: " + ex);
-            if (camera != null) camera.release();
+            LogUtil.e(TAG, "getCameraParameters: android.hardware.Camera.getParameters", ex);
             return null;
         }
         return parameters;
@@ -75,14 +82,14 @@ public class VideoCaptureCamera
         @Override
         public void onError(int error, Camera camera) {
             LogUtil.e(TAG, "Camera capture error: " + error);
-            handleCaptureError(error);
+            handleCaptureError(error, null);
         }
     }
 
-    protected void handleCaptureError(int error) {
+    protected void handleCaptureError(int error, String msg) {
         if (stateListener != null) {
-            int errorCode = -1;
-            String errorMessage = null;
+            int errorCode = error;
+            String errorMessage = msg;
             String hint = "Camera: ";
             switch (error) {
                 case Camera.CAMERA_ERROR_UNKNOWN:
@@ -119,6 +126,9 @@ public class VideoCaptureCamera
 
         synchronized (mCameraStateLock) {
             if (mCameraState != CameraState.STOPPED) {
+                String message = "allocate: The camera status is not stopped!";
+                LogUtil.e(TAG, message);
+                handleCaptureError(ERROR_ALLOCATE, message);
                 return false;
             }
         }
@@ -127,42 +137,68 @@ public class VideoCaptureCamera
         Camera.CameraInfo info = new Camera.CameraInfo();
         int numCameras = getNumberOfCameras();
         for (int i = 0; i < numCameras; i++) {
-            Camera.getCameraInfo(i, info);
+            try {
+                Camera.getCameraInfo(i, info);
+            } catch (Exception e) {
+                String message = "allocate: Camera.getCameraInfo: index=" + i + "\n" + e;
+                LogUtil.e(TAG, message);
+                handleCaptureError(ERROR_ALLOCATE, message);
+                return false;
+            }
             if (curCameraFacing == Constant.CAMERA_FACING_FRONT && info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
                 mCameraId = i;
-                break;
             }
 
             if (curCameraFacing == Constant.CAMERA_FACING_BACK && info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
                 mCameraId = i;
-                break;
             }
         }
 
+        Camera camera;
         try {
-            mCamera = Camera.open(mCameraId);
-            mCamera.setDisplayOrientation(90);
-        } catch (RuntimeException ex) {
-            LogUtil.e(TAG, "allocate: Camera.open: " + ex);
-            mErrorCallback.onError(ERROR_UNKNOWN, null);
+            camera = Camera.open(mCameraId);
+        } catch (Exception ex) {
+            String message = "allocate: Camera.open: " + ex;
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
+            return false;
+        }
+        if(camera == null){
+            String message = "allocate: Camera.open(" + mCameraId + ") return null!";
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
             return false;
         }
 
         Camera.CameraInfo cameraInfo = getCameraInfo(mCameraId);
         if (cameraInfo == null) {
-            mCamera.release();
-            mCamera = null;
+            camera.release();
+            String message = "allocate: getCameraInfo null";
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
             return false;
         }
 
         // Making the texture transformation behaves
         // as the same as Camera2 api.
+        try {
+            camera.setDisplayOrientation(0);
+        } catch (Exception e) {
+            camera.release();
+            String message = "allocate: camera.setDisplayOrientation: " + e;
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
+            return false;
+        }
         pCameraNativeOrientation = cameraInfo.orientation;
         pInvertDeviceOrientationReadings = cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT;
 
-        Camera.Parameters parameters = getCameraParameters(mCamera);
+        Camera.Parameters parameters = getCameraParameters(camera);
         if (parameters == null) {
-            mCamera = null;
+            camera.release();
+            String message = "allocate: getCameraParameters is null";
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
             return false;
         }
 
@@ -170,7 +206,11 @@ public class VideoCaptureCamera
         // element, but when camera is in bad state, it can return null pointer.
         List<int[]> listFpsRange = parameters.getSupportedPreviewFpsRange();
         if (listFpsRange == null || listFpsRange.size() == 0) {
-            LogUtil.e(TAG, "allocate: no fps range found");
+            camera.release();
+
+            String message = "allocate: no fps range found";
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
             return false;
         }
         final ArrayList<FrameRateRange> ranges =
@@ -181,7 +221,7 @@ public class VideoCaptureCamera
         // API fps ranges are scaled up x1000 to avoid floating point.
         int frameRateScaled = frameRate * 1000;
         FrameRateRange chosenRange =
-                getClosestFrameRateRange(ranges, frameRateScaled);
+                CameraUtils.getClosestFrameRateRangeExactly(ranges, frameRateScaled);
 
         if(stateListener != null){
             FrameRateRange reSelectFpsRange = stateListener.onSelectCameraFpsRange(ranges, chosenRange);
@@ -208,18 +248,36 @@ public class VideoCaptureCamera
             }
         }
         if (minDiff == Integer.MAX_VALUE) {
-            LogUtil.e(TAG, "Couldn't find resolution close to (" + width + "x" + height + ")");
+            camera.release();
+
+            String message = "allocate: " + "Couldn't find resolution close to (" + width + "x" + height + ")";
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
             return false;
         }
         LogUtil.d(TAG, "allocate: matched (" + matchedWidth +  " x " + matchedHeight + ")");
 
         mPreviewWidth = matchedWidth;
         mPreviewHeight = matchedHeight;
-        pCaptureFormat = new VideoCaptureFormat(matchedWidth, matchedHeight,
+        int cameraFacing = Constant.CAMERA_FACING_INVALID;
+        if(mCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT){
+            cameraFacing = Constant.CAMERA_FACING_FRONT;
+        }else if(mCameraId == Camera.CameraInfo.CAMERA_FACING_BACK){
+            cameraFacing = Constant.CAMERA_FACING_BACK;
+        }
+        pCaptureFormat = new VideoCaptureFormat(cameraFacing, matchedWidth, matchedHeight,
                 chosenFpsRange[1] / 1000, ImageFormat.NV21,
                 GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
         parameters.setPreviewSize(matchedWidth, matchedHeight);
-        parameters.setPreviewFpsRange(chosenFpsRange[0], chosenFpsRange[1]);
+        try {
+            parameters.setPreviewFpsRange(chosenFpsRange[0], chosenFpsRange[1]);
+        } catch (Exception e) {
+            camera.release();
+            String message = "allocate: parameters.setPreviewFpsRange: " + e;
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
+            return false;
+        }
         parameters.setPreviewFormat(pCaptureFormat.getPixelFormat());
 
         if (parameters.isVideoStabilizationSupported()) {
@@ -228,29 +286,36 @@ public class VideoCaptureCamera
 
         // set auto focus mode
         final List<String> focusModes = parameters.getSupportedFocusModes();
-        if (focusModes.contains(android.hardware.Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
-            parameters.setFocusMode(android.hardware.Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+        if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
         }
 
         try {
-            mCamera.setParameters(parameters);
-        } catch (RuntimeException ex) {
-            LogUtil.e(TAG, "setParameters: " + ex);
+            camera.setParameters(parameters);
+        } catch (Exception ex) {
+            camera.release();
+
+            String message = "allocate: setParameters error -- " + ex;
+            LogUtil.e(TAG, message);
+            handleCaptureError(ERROR_ALLOCATE, message);
             return false;
         }
 
-        mCamera.setErrorCallback(mErrorCallback);
+        camera.setErrorCallback(mErrorCallback);
 
         mExpectedFrameSize = pCaptureFormat.getWidth() * pCaptureFormat.getHeight()
                 * ImageFormat.getBitsPerPixel(pCaptureFormat.getPixelFormat()) / 8;
         for (int i = 0; i < NUM_CAPTURE_BUFFERS; i++) {
             byte[] buffer = new byte[mExpectedFrameSize];
-            mCamera.addCallbackBuffer(buffer);
+            camera.addCallbackBuffer(buffer);
         }
 
         synchronized (mCameraStateLock) {
+            mCamera = camera;
             mCameraState = CameraState.OPENING;
         }
+
+        skipFrame = 5;
 
         return true;
     }
@@ -285,6 +350,7 @@ public class VideoCaptureCamera
             stateListener.onCameraOpen();
         }
     }
+
 
     @Override
     public void startCaptureMaybeAsync(boolean needsPreview) {
@@ -342,11 +408,11 @@ public class VideoCaptureCamera
             pPreviewTextureId = -1;
         }
 
-        pCaptureFormat = null;
-        mCamera.release();
-        mCamera = null;
-
         synchronized (mCameraStateLock) {
+            pCaptureFormat = null;
+            mCamera.release();
+            mCamera = null;
+
             mCameraState = CameraState.STOPPED;
         }
 
@@ -356,61 +422,19 @@ public class VideoCaptureCamera
     }
 
     @Override
-    void updatePreviewOrientation() {
-        LogUtil.e(TAG, "vide isUpsideDown: 33");
-
-        Camera.CameraInfo cameraInfo = getCameraInfo(mCameraId);
-        if (mCamera == null || cameraInfo == null) {
-            LogUtil.e(TAG, "vide isUpsideDown: mCamera is" + mCamera + "cameraInfo is " + cameraInfo);
-            return;
-        }
-        //mCamera.setDisplayOrientation(getDisplayOrientation(cameraInfo));
-    }
-
-    private int getDisplayOrientation(Camera.CameraInfo cameraInfo) {
-
-        int rotation = ((WindowManager) pContext.getSystemService(Context.WINDOW_SERVICE))
-                .getDefaultDisplay().getRotation();
-
-        int degrees = 0;
-        switch (rotation) {
-            case Surface.ROTATION_0: {
-                degrees = 0;
-                break;
-            }
-            case Surface.ROTATION_90: {
-                degrees = 90;
-                break;
-            }
-            case Surface.ROTATION_180: {
-                degrees = 180;
-                break;
-            }
-            case Surface.ROTATION_270: {
-                degrees = 270;
-                break;
-            }
-        }
-        int displayOrientation;
-        if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            displayOrientation = (cameraInfo.orientation + degrees) % 360;
-            displayOrientation = (360 - displayOrientation) % 360;
-        } else {
-            displayOrientation = (cameraInfo.orientation - degrees + 360) % 360;
-        }
-        return displayOrientation;
-    }
-
-    @Override
     public void onPreviewFrame(byte[] data, @NonNull Camera camera) {
         mPreviewBufferLock.lock();
         try {
             if (mCameraState != CameraState.STARTED) {
                 return;
             }
-
             if (data.length != mExpectedFrameSize) {
                 LogUtil.e(TAG, "the frame size is not as expected");
+                return;
+            }
+
+            if (skipFrame > 0) {
+                skipFrame--;
                 return;
             }
 
@@ -424,122 +448,160 @@ public class VideoCaptureCamera
 
     @Override
     public boolean isTorchSupported() {
-        if (this.mCamera != null) {
-            Camera.Parameters parameters = this.getCameraParameters();
-            if (parameters != null) {
-                return isSupported("torch", parameters.getSupportedFlashModes());
-            }
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
+            return false;
+        }
+        Camera camera = mCamera;
+        if (camera == null) {
+            return false;
+        }
+        Camera.Parameters parameters = getCameraParameters(camera);
+        if (parameters == null) {
+            return false;
         }
 
-        return false;
+        return isSupported("torch", parameters.getSupportedFlashModes());
     }
 
     @Override
     public int setTorchMode(boolean isOn) {
-        if (this.mCamera != null) {
-            Camera.Parameters parameters = this.getCameraParameters();
-            if (parameters != null) {
-                List<String> supportedFlashModes = parameters.getSupportedFlashModes();
-                if (supportedFlashModes != null && supportedFlashModes.contains("torch")) {
-                    if (isOn) {
-                        parameters.setFlashMode("torch");
-                    } else {
-                        parameters.setFlashMode("off");
-                    }
-
-                    this.mCamera.setParameters(parameters);
-                    return 0;
-                }
-
-                return -1;
-            }
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
+            return -1;
+        }
+        Camera camera = mCamera;
+        if (camera == null) {
+            return -1;
+        }
+        Camera.Parameters parameters = getCameraParameters(camera);
+        if (parameters == null) {
+            return -2;
         }
 
-        return -2;
+        List<String> supportedFlashModes = parameters.getSupportedFlashModes();
+
+        if (supportedFlashModes == null || !supportedFlashModes.contains("torch")) {
+            return -3;
+        }
+
+        String flashMode;
+        if (isOn) {
+            flashMode = "torch";
+        } else {
+            flashMode = "off";
+        }
+
+        parameters.setFlashMode(flashMode);
+
+        try {
+            camera.setParameters(parameters);
+            return 0;
+        } catch (Exception e) {
+            LogUtil.e(TAG, "setTorchMode: setParameters error -- flashMode=" + flashMode + ", exception="+ e);
+            return -4;
+        }
     }
 
     @Override
     public boolean isZoomSupported() {
-        if (this.mCamera != null) {
-            Camera.Parameters parameters = this.getCameraParameters();
-            return this.isZoomSupported(parameters);
-        } else {
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
             return false;
         }
+        Camera camera = mCamera;
+        if (camera == null) {
+            return false;
+        }
+        Camera.Parameters parameters = getCameraParameters(camera);
+        if(parameters == null){
+            return false;
+        }
+        return isZoomSupported(parameters);
     }
 
     @Override
     public int setZoom(float zoomValue) {
-        if (!(zoomValue < 0.0F) && this.mCamera != null) {
-            int zoomRatio = (int)(zoomValue * 100.0F + 0.5F);
-            List<Integer> zoomRatios = this.getZoomRatios();
-            if (zoomRatios == null) {
-                return -1;
-            } else {
-                int zoomLevel = 0;
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
+            return -1;
+        }
+        Camera camera = mCamera;
+        if(zoomValue < 0.0F || camera == null){
+            return -1;
+        }
+        int zoomRatio = (int)(zoomValue * 100.0F + 0.5F);
+        List<Integer> zoomRatios = this.getZoomRatios();
+        if (zoomRatios == null) {
+            return -1;
+        }
 
-                int maxZoom;
-                for(int i = 0; i < zoomRatios.size(); ++i) {
-                    maxZoom = (Integer)zoomRatios.get(i);
-                    if (zoomRatio <= maxZoom) {
-                        zoomLevel = i;
-                        break;
-                    }
-                }
+        int zoomLevel = 0;
 
-                Camera.Parameters parameters = this.getCameraParameters();
-                if (!this.isZoomSupported(parameters)) {
-                    return -1;
-                } else {
-                    maxZoom = parameters.getMaxZoom();
-                    if (zoomLevel > maxZoom) {
-                        Log.w(TAG, "zoom value is larger than maxZoom value");
-                        return -1;
-                    } else {
-                        parameters.setZoom(zoomLevel);
-
-                        try {
-                            this.mCamera.setParameters(parameters);
-                            return 0;
-                        } catch (Exception var8) {
-                            Log.w(TAG, "setParameters failed, zoomLevel: " + zoomLevel + ", " + var8);
-                            return -1;
-                        }
-                    }
-                }
+        int maxZoom;
+        for(int i = 0; i < zoomRatios.size(); ++i) {
+            maxZoom = (Integer)zoomRatios.get(i);
+            if (zoomRatio <= maxZoom) {
+                zoomLevel = i;
+                break;
             }
-        } else {
+        }
+
+        Camera.Parameters parameters = getCameraParameters(camera);
+        if (!this.isZoomSupported(parameters)) {
+            return -1;
+        }
+
+        maxZoom = parameters.getMaxZoom();
+        if (zoomLevel > maxZoom) {
+            Log.w(TAG, "zoom value is larger than maxZoom value");
+            return -1;
+        }
+
+        parameters.setZoom(zoomLevel);
+
+        try {
+            this.mCamera.setParameters(parameters);
+            return 0;
+        } catch (Exception var8) {
+            Log.w(TAG, "setZoom: setParameters error -- zoomLevel=" + zoomLevel + ", exception=" + var8);
             return -1;
         }
     }
 
     @Override
     public float getMaxZoom() {
-        if (this.mCamera != null) {
-            Camera.Parameters parameters = this.getCameraParameters();
-            int maxZoom = 0;
-            if (this.isZoomSupported(parameters)) {
-                maxZoom = parameters.getMaxZoom();
-            }
-
-            List<Integer> zoomRatios = this.getZoomRatios();
-            if (zoomRatios != null && zoomRatios.size() > maxZoom) {
-                return (float)(Integer)zoomRatios.get(maxZoom) / 100.0F;
-            }
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
+            return -1.0F;
+        }
+        Camera camera = mCamera;
+        if(camera == null){
+            return -1.0F;
+        }
+        Camera.Parameters parameters = getCameraParameters(camera);
+        if (!isZoomSupported(parameters)) {
+            return -1.0F;
         }
 
-        return -1.0F;
+        int maxZoom = parameters.getMaxZoom();
+
+        List<Integer> zoomRatios = this.getZoomRatios();
+        if (zoomRatios == null || zoomRatios.size() <= maxZoom) {
+            return -1.0F;
+        }
+
+        return (float)(Integer)zoomRatios.get(maxZoom) / 100.0F;
     }
 
     private List<Integer> getZoomRatios() {
-        if (this.mCamera != null) {
-            Camera.Parameters parameters = this.getCameraParameters();
-            if (this.isZoomSupported(parameters)) {
-                return parameters.getZoomRatios();
-            }
+        Camera camera = mCamera;
+        if(camera == null){
+            return null;
         }
-
-        return null;
+        Camera.Parameters parameters = getCameraParameters(camera);
+        if(parameters == null){
+            return null;
+        }
+        if (!isZoomSupported(parameters)) {
+            return null;
+        }
+        return parameters.getZoomRatios();
     }
 
     private boolean isZoomSupported(Camera.Parameters parameters) {
@@ -556,18 +618,87 @@ public class VideoCaptureCamera
         }
     }
 
-    public Camera.Parameters getCameraParameters() {
-        try {
-            Camera.Parameters parameters = this.mCamera.getParameters();
-            return parameters;
-        } catch (RuntimeException var3) {
-            Log.e(TAG, "getCameraParameters: Camera.getParameters: ", var3);
-            var3.printStackTrace();
-        }
-        return null;
-    }
-
     private static boolean isSupported(String value, List<String> supported) {
         return supported != null && supported.indexOf(value) >= 0;
+    }
+
+    @Override
+    public void setExposureCompensation(int value) {
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
+            return;
+        }
+        Camera camera = mCamera;
+        if(camera == null){
+            return;
+        }
+        Camera.Parameters parameters = getCameraParameters(camera);
+        if(parameters == null){
+            return;
+        }
+        parameters.setExposureCompensation(value);
+        try {
+            mCamera.setParameters(parameters);
+        } catch (Exception e) {
+            LogUtil.e(TAG, "setExposureCompensation: setParameters error -- exposureCompensationValue=" + value + ", exception=" + e);
+        }
+    }
+
+    @Override
+    public int getExposureCompensation() {
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
+            return 0;
+        }
+        Camera camera = mCamera;
+        if(camera == null){
+            return 0;
+        }
+        Camera.Parameters parameters = getCameraParameters(camera);
+        if (parameters == null) {
+            return 0;
+        }
+        return parameters.getExposureCompensation();
+    }
+
+    @Override
+    public int getMaxExposureCompensation() {
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
+            return 0;
+        }
+        Camera camera = mCamera;
+        if(camera == null){
+            return 0;
+        }
+        Camera.Parameters parameters = getCameraParameters(camera);
+        if (parameters == null) {
+            return 0;
+        }
+        return parameters.getMaxExposureCompensation();
+    }
+
+    @Override
+    public int getMinExposureCompensation() {
+        if (!checkCameraState(CameraState.OPENING, CameraState.STARTED, CameraState.STOPPED)) {
+            return 0;
+        }
+        Camera camera = mCamera;
+        if(camera == null){
+            return 0;
+        }
+        Camera.Parameters parameters = getCameraParameters(camera);
+        if (parameters == null) {
+            return 0;
+        }
+        return parameters.getMinExposureCompensation();
+    }
+
+    private boolean checkCameraState(CameraState... states){
+        synchronized (mCameraStateLock){
+            for (CameraState state : states) {
+                if(mCameraState == state){
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }

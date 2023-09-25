@@ -7,14 +7,16 @@ import android.view.TextureView;
 
 import androidx.annotation.Nullable;
 
+import io.agora.capture.framework.gles.MatrixOperator;
 import io.agora.capture.framework.modules.channels.ChannelManager;
+import io.agora.capture.framework.modules.consumers.CaptureFrameWrapConsumer;
+import io.agora.capture.framework.modules.consumers.ICaptureFrameConsumer;
 import io.agora.capture.framework.modules.consumers.IVideoConsumer;
 import io.agora.capture.framework.modules.consumers.SurfaceViewConsumer;
 import io.agora.capture.framework.modules.consumers.TextureViewConsumer;
 import io.agora.capture.framework.modules.processors.IPreprocessor;
 import io.agora.capture.framework.modules.processors.WatermarkProcessor;
 import io.agora.capture.framework.util.LogUtil;
-import io.agora.capture.framework.util.MatrixOperator;
 
 /**
  * VideoManager is designed as the up-level encapsulation of
@@ -72,8 +74,10 @@ public class CameraVideoManager {
     }
 
     public static CameraVideoManager getInstance(){
-        if(sInstance == null){
-            throw new IllegalStateException("The instance of cameraVideoManager has not been created yet, please call create(...) firstly.");
+        synchronized (CameraVideoManager.class){
+            if(sInstance == null){
+                throw new IllegalStateException("The instance of cameraVideoManager has not been created yet, please call create(...) firstly.");
+            }
         }
         return sInstance;
     }
@@ -215,17 +219,17 @@ public class CameraVideoManager {
      * the others.
      * @param consumer the consumer implementation
      */
-    public void attachOffScreenConsumer(IVideoConsumer consumer) {
+    public void attachOffScreenConsumer(ICaptureFrameConsumer consumer) {
         checkAvailable();
         if (mCameraChannel != null) {
-            mCameraChannel.connectConsumer(consumer, IVideoConsumer.TYPE_OFF_SCREEN);
+            mCameraChannel.connectConsumer(new CaptureFrameWrapConsumer(consumer), IVideoConsumer.TYPE_OFF_SCREEN);
         }
     }
 
-    public void detachOffScreenConsumer(IVideoConsumer consumer) {
+    public void detachOffScreenConsumer(ICaptureFrameConsumer consumer) {
         checkAvailable();
         if (mCameraChannel != null) {
-            mCameraChannel.disconnectConsumer(consumer);
+            mCameraChannel.disconnectConsumer(new CaptureFrameWrapConsumer(consumer));
         }
     }
 
@@ -299,6 +303,37 @@ public class CameraVideoManager {
             return mCameraChannel.setTorchMode(isOn);
         }
         return -4;
+    }
+
+    public void setExposureCompensation(int value) {
+        checkAvailable();
+        if (mCameraChannel != null) {
+            mCameraChannel.setExposureCompensation(value);
+        }
+    }
+
+    public int getExposureCompensation() {
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.getExposureCompensation();
+        }
+        return 0;
+    }
+
+    public int getMinExposureCompensation() {
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.getMinExposureCompensation();
+        }
+        return 0;
+    }
+
+    public int getMaxExposureCompensation() {
+        checkAvailable();
+        if (mCameraChannel != null) {
+            return mCameraChannel.getMaxExposureCompensation();
+        }
+        return 0;
     }
 
     public IPreprocessor getPreprocessor() {
@@ -378,13 +413,6 @@ public class CameraVideoManager {
         checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.setCameraStateListener(listener);
-        }
-    }
-
-    public void updatePreviewOrientation() {
-        checkAvailable();
-        if (mCameraChannel != null) {
-            mCameraChannel.updatePreviewOrientation();
         }
     }
 

@@ -4,7 +4,6 @@ import android.content.Context;
 
 import io.agora.capture.framework.modules.channels.ChannelManager;
 import io.agora.capture.framework.modules.channels.VideoChannel;
-import io.agora.capture.framework.util.LogUtil;
 
 public class CameraVideoChannel extends VideoChannel {
     private static final String TAG = CameraVideoChannel.class.getSimpleName();
@@ -129,6 +128,34 @@ public class CameraVideoChannel extends VideoChannel {
         return -3;
     }
 
+    // ExposureCompensation api
+    public void setExposureCompensation(int value) {
+        if (mCapturedStarted) {
+            mVideoCapture.setExposureCompensation(value);
+        }
+    }
+
+    public int getExposureCompensation() {
+        if (mCapturedStarted) {
+            return mVideoCapture.getExposureCompensation();
+        }
+        return 0;
+    }
+
+    public int getMinExposureCompensation() {
+        if (mCapturedStarted) {
+            return mVideoCapture.getMinExposureCompensation();
+        }
+        return 0;
+    }
+
+    public int getMaxExposureCompensation() {
+        if (mCapturedStarted) {
+            return mVideoCapture.getMaxExposureCompensation();
+        }
+        return 0;
+    }
+
     private void switchCameraFacing() {
         if (mFacing == Constant.CAMERA_FACING_FRONT) {
             mFacing = Constant.CAMERA_FACING_BACK;
@@ -154,20 +181,12 @@ public class CameraVideoChannel extends VideoChannel {
 
     void setCameraStateListener(VideoCapture.VideoCaptureStateListener listener) {
         if (isRunning()) {
+            getChannelContext().getEglCore().setErrorCallback((code, msg) -> {
+                listener.onCameraCaptureError(Constant.ERROR_EGL_CORE, msg + ": EGL error: 0x" + Integer.toHexString(code));
+            });
             getHandler().postAtFrontOfQueue(() -> mVideoCapture.setCaptureStateListener(listener));
         }
     }
 
-
-    public void updatePreviewOrientation() {
-        if (isRunning()) {
-            getHandler().postAtFrontOfQueue(() -> {
-                if (mCapturedStarted) {
-                    LogUtil.e(TAG, "video isUpsideDown: 22" );
-                    mVideoCapture.updatePreviewOrientation();
-                }
-            });
-        }
-    }
 
 }

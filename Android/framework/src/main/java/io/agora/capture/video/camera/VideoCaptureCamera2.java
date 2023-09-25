@@ -4,6 +4,13 @@
 
 package io.agora.capture.video.camera;
 
+import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_DEVICE;
+import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_DISABLED;
+import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_DISCONNECTED;
+import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_SERVICE;
+import static io.agora.capture.video.camera.Constant.ERROR_CANNOT_OPEN_MORE;
+import static io.agora.capture.video.camera.Constant.ERROR_IN_USE;
+
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.ImageFormat;
@@ -33,6 +40,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import io.agora.capture.framework.gles.core.GlUtil;
+import io.agora.capture.framework.util.CameraUtils;
 import io.agora.capture.framework.util.LogUtil;
 
 /**
@@ -63,7 +71,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
             mCameraDevice = null;
             cameraSteady = false;
             firstFrame = false;
-            handleCaptureError(ERROR_CAMERA_DISCONNECTED);
+            handleCaptureError(ERROR_CAMERA_DISCONNECTED, null);
             changeCameraStateAndNotify(CameraState.STOPPED);
         }
 
@@ -74,7 +82,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
             mCameraDevice = null;
             cameraSteady = false;
             firstFrame = false;
-            handleCaptureError(error);
+            handleCaptureError(error, null);
         }
 
         @Override
@@ -96,7 +104,8 @@ public class VideoCaptureCamera2 extends VideoCapture {
         }
     };
 
-    protected void handleCaptureError(int error) {
+
+    protected void handleCaptureError(int error, String msg) {
         if (stateListener != null) {
             int errorCode = -1;
             String errorMessage = null;
@@ -412,7 +421,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
                     range.getLower() * fpsUnitFactor, range.getUpper() * fpsUnitFactor));
         }
         final FrameRateRange aeRange =
-                getClosestFrameRateRange(ranges, frameRate * 1000);
+                CameraUtils.getClosestFrameRateRangeExactly(ranges, frameRate * 1000);
         mAeFpsRange = new Range<Integer>(
                 aeRange.min / fpsUnitFactor, aeRange.max / fpsUnitFactor);
         LogUtil.d(TAG, "allocate: fps set to [" + mAeFpsRange.getLower() + "-" + mAeFpsRange.getUpper() + "]");
@@ -421,7 +430,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
         mPreviewHeight = closestSupportedSize.getHeight();
 
         // |mCaptureFormat| is also used to configure the ImageReader.
-        pCaptureFormat = new VideoCaptureFormat(closestSupportedSize.getWidth(),
+        pCaptureFormat = new VideoCaptureFormat(mCameraId, closestSupportedSize.getWidth(),
                 closestSupportedSize.getHeight(),
                 aeRange.max / fpsUnitFactor,
                 ImageFormat.YUV_420_888, GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
@@ -520,8 +529,23 @@ public class VideoCaptureCamera2 extends VideoCapture {
     }
 
     @Override
-    void updatePreviewOrientation() {
+    public void setExposureCompensation(int value) {
 
+    }
+
+    @Override
+    public int getExposureCompensation() {
+        return 0;
+    }
+
+    @Override
+    public int getMinExposureCompensation() {
+        return 0;
+    }
+
+    @Override
+    public int getMaxExposureCompensation() {
+        return 0;
     }
 
     private byte[] YUV_420_888toNV21(Image image) {

@@ -8,13 +8,15 @@ import android.opengl.GLES20;
 import android.os.Handler;
 import android.os.HandlerThread;
 
+import io.agora.capture.framework.gles.MatrixOperator;
+import io.agora.capture.framework.gles.MatrixOperatorGL;
+import io.agora.capture.framework.gles.MatrixOperatorGraphics;
 import io.agora.capture.framework.gles.ProgramTexture2d;
 import io.agora.capture.framework.gles.ProgramTextureOES;
 import io.agora.capture.framework.gles.core.EglCore;
 import io.agora.capture.framework.modules.channels.ChannelManager;
 import io.agora.capture.framework.modules.channels.VideoChannel;
 import io.agora.capture.framework.util.LogUtil;
-import io.agora.capture.framework.util.MatrixOperator;
 import io.agora.capture.video.camera.Constant;
 import io.agora.capture.video.camera.VideoCaptureFrame;
 import io.agora.capture.video.camera.VideoModule;
@@ -32,6 +34,7 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
     volatile boolean surfaceDestroyed;
 
     private final MatrixOperator mMVPMatrix;
+    private final MatrixOperator mTextureMatrix;
 
     private final boolean uniqueGLEnv;
     private volatile boolean uniqueIsRunning = false;
@@ -42,11 +45,13 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
     private ProgramTextureOES uniqueProgramOES;
     private ProgramTexture2d uniqueProgram2d;
 
-    protected BaseWindowConsumer(VideoModule videoModule, boolean uniqueGLEnv, @MatrixOperator.ScaleType int scaleTyp) {
+    protected BaseWindowConsumer(VideoModule videoModule, boolean uniqueGLEnv, @MatrixOperator.ScaleType int scaleType) {
         this.videoModule = videoModule;
-        mMVPMatrix = new MatrixOperator(scaleTyp);
+        mMVPMatrix = new MatrixOperatorGL(scaleType);
+        mTextureMatrix = new MatrixOperatorGraphics(scaleType);
         this.uniqueGLEnv = uniqueGLEnv;
     }
+
 
     @Override
     public void connectChannel(int channelId) {
@@ -111,10 +116,10 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
 
     private void initUniqueGLEnv(EGLContext shareContext) {
         uniqueIsQuit = false;
-        uniqueThread = new HandlerThread(this.getClass().getSimpleName()){
+        uniqueThread = new HandlerThread(this.getClass().getSimpleName()) {
             @Override
             public void run() {
-                if(uniqueIsQuit){
+                if (uniqueIsQuit) {
                     return;
                 }
                 uniqueEglCore = new EglCore(shareContext);
@@ -163,7 +168,7 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
             return;
         }
         if (Thread.currentThread() != uniqueThread) {
-            if(uniqueThreadHandler == null){
+            if (uniqueThreadHandler == null) {
                 uniqueThreadHandler = new Handler(uniqueThread.getLooper());
             }
             uniqueThreadHandler.post(runnable);
@@ -175,6 +180,10 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
 
     private void drawFrame(VideoCaptureFrame frame, EglCore eglCore, ProgramTextureOES programTextureOES, ProgramTexture2d programTexture2d) {
         if (surfaceDestroyed) {
+            return;
+        }
+
+        if (frame.textureId <= 0) {
             return;
         }
 
@@ -225,27 +234,30 @@ public abstract class BaseWindowConsumer implements IVideoConsumer {
         }
 
         mMVPMatrix.update(surfaceWidth, surfaceHeight, desiredWidth, desiredHeight);
-
-        if(mirrorMode == Constant.MIRROR_MODE_AUTO){
-            mMVPMatrix.setMirror(frame.mirrored);
-        }else if(mirrorMode == Constant.MIRROR_MODE_ENABLED){
-            mMVPMatrix.setMirror(true);
-        }else {
-            mMVPMatrix.setMirror(false);
+        if (mirrorMode == Constant.MIRROR_MODE_AUTO) {
+            mMVPMatrix.setFlipH(frame.mirrored);
+        } else if (mirrorMode == Constant.MIRROR_MODE_ENABLED) {
+            mMVPMatrix.setFlipH(true);
+        } else {
+            mMVPMatrix.setFlipH(false);
         }
 
+        mTextureMatrix.setTransformMatrix(frame.textureTransform);
+        mTextureMatrix.setPreFlipH(frame.mirrored);
+        mTextureMatrix.setRotation(frame.rotation);
+
         if (frame.format.getTexFormat() == GLES20.GL_TEXTURE_2D) {
-            if (programTexture2d == null && uniqueGLEnv) {
+            if (programTexture2d == null) {
                 uniqueProgram2d = new ProgramTexture2d();
                 programTexture2d = uniqueProgram2d;
             }
-            programTexture2d.drawFrame(frame.textureId, frame.textureTransform, mMVPMatrix.getMatrix());
+            programTexture2d.drawFrame(frame.textureId, mTextureMatrix.getFinalMatrix(), mMVPMatrix.getFinalMatrix());
         } else if (frame.format.getTexFormat() == GLES11Ext.GL_TEXTURE_EXTERNAL_OES) {
-            if (programTextureOES == null && uniqueGLEnv) {
+            if (programTextureOES == null) {
                 uniqueProgramOES = new ProgramTextureOES();
                 programTextureOES = uniqueProgramOES;
             }
-            programTextureOES.drawFrame(frame.textureId, frame.textureTransform, mMVPMatrix.getMatrix());
+            programTextureOES.drawFrame(frame.textureId, mTextureMatrix.getFinalMatrix(), mMVPMatrix.getFinalMatrix());
         }
 
         if (drawingEglSurface != null) {

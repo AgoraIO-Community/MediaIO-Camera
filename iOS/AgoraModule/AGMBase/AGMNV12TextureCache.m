@@ -16,11 +16,17 @@
 @synthesize pixelBuffer = _pixelBuffer;
 
 - (GLuint)yTexture {
-  return CVOpenGLESTextureGetName(_yTextureRef);
+    if (_yTextureRef) {
+        return CVOpenGLESTextureGetName(_yTextureRef);
+    }
+    return 0;
 }
 
 - (GLuint)uvTexture {
-  return CVOpenGLESTextureGetName(_uvTextureRef);
+    if (_uvTextureRef) {
+        return CVOpenGLESTextureGetName(_uvTextureRef);
+    }
+    return 0;
 }
 
 - (instancetype)initWithContext:(GlContextType *)context {
@@ -44,16 +50,25 @@
         pixelBuffer:(CVPixelBufferRef)pixelBuffer
          planeIndex:(int)planeIndex
         pixelFormat:(GLenum)pixelFormat {
-  const int width = CVPixelBufferGetWidthOfPlane(pixelBuffer, planeIndex);
-  const int height = CVPixelBufferGetHeightOfPlane(pixelBuffer, planeIndex);
+  const size_t width = CVPixelBufferGetWidthOfPlane(pixelBuffer, planeIndex);
+  const size_t height = CVPixelBufferGetHeightOfPlane(pixelBuffer, planeIndex);
 
   if (*textureOut) {
     CFRelease(*textureOut);
     *textureOut = nil;
   }
-  CVReturn ret = CVOpenGLESTextureCacheCreateTextureFromImage(
-      kCFAllocatorDefault, _textureCache, pixelBuffer, NULL, GL_TEXTURE_2D, pixelFormat, width,
-      height, pixelFormat, GL_UNSIGNED_BYTE, planeIndex, textureOut);
+  CVReturn ret = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
+                                                              _textureCache,
+                                                              pixelBuffer,
+                                                              NULL,
+                                                              GL_TEXTURE_2D,
+                                                              pixelFormat,
+                                                              (int)width,
+                                                              (int)height,
+                                                              pixelFormat,
+                                                              GL_UNSIGNED_BYTE,
+                                                              planeIndex,
+                                                              textureOut);
   if (ret != kCVReturnSuccess) {
     if (*textureOut) {
       CFRelease(*textureOut);

@@ -4,14 +4,14 @@
 
 package io.agora.capture.video.camera;
 
+import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_FREEZED;
+
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.opengl.EGLContext;
 import android.os.Handler;
 import android.os.Looper;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import io.agora.capture.framework.modules.producers.VideoProducer;
@@ -24,6 +24,7 @@ import io.agora.capture.framework.util.LogUtil;
  * provides some necessary data type(s) with accessors.
  **/
 public abstract class VideoCapture extends VideoProducer {
+
     public static final int ERROR_UNKNOWN = 0;
     public static final int ERROR_IN_USE = 1;
     public static final int ERROR_CANNOT_OPEN_MORE = 2;
@@ -32,15 +33,18 @@ public abstract class VideoCapture extends VideoProducer {
     public static final int ERROR_CAMERA_SERVICE = 5;
     public static final int ERROR_CAMERA_DISCONNECTED = 6;
     public static final int ERROR_CAMERA_FREEZED = 7;
+    public static final int ERROR_ALLOCATE = 8;
+    public static final int ERROR_CONSUME_VIDEO_FRAME = 9;
+
 
     /**
      * Common class for storing a frameRate range. Values should be multiplied by 1000.
      */
     public static class FrameRateRange {
-        int min;
-        int max;
+        public int min;
+        public int max;
 
-        FrameRateRange(int min, int max) {
+        public FrameRateRange(int min, int max) {
             this.min = min;
             this.max = max;
         }
@@ -61,6 +65,14 @@ public abstract class VideoCapture extends VideoProducer {
             int result = min;
             result = 31 * result + max;
             return result;
+        }
+
+        @Override
+        public String toString() {
+            return "FrameRateRange{" +
+                    "min=" + min +
+                    ", max=" + max +
+                    '}';
         }
     }
 
@@ -165,10 +177,13 @@ public abstract class VideoCapture extends VideoProducer {
     public abstract boolean isTorchSupported();
     public abstract int setTorchMode(boolean isOn);
 
-    /**
-     * update preview orientation
-     */
-    abstract void updatePreviewOrientation();
+    // ExposureCompensation api
+    public abstract void setExposureCompensation (int value);
+    public abstract int getExposureCompensation ();
+    public abstract int getMinExposureCompensation ();
+    public abstract int getMaxExposureCompensation ();
+
+
 
     void deallocate() {
         if (fpsUtil != null) {
@@ -178,53 +193,17 @@ public abstract class VideoCapture extends VideoProducer {
         deallocate(true);
     }
 
-    static FrameRateRange getClosestFrameRateRange(
-            final List<FrameRateRange> frameRateRanges, int targetFrameRate) {
-
-        List<FrameRateRange> includeRanges = new ArrayList<>();
-        for (FrameRateRange frameRateRange : frameRateRanges) {
-            if(frameRateRange.min <= targetFrameRate && frameRateRange.max >= targetFrameRate){
-                includeRanges.add(frameRateRange);
-            }
-        }
-
-        if(includeRanges.size() == 0){
-            if(targetFrameRate < frameRateRanges.get(0).min){
-                return Collections.min(frameRateRanges, (o1, o2) -> o1.min - o2.min);
-            }else{
-                return Collections.max(frameRateRanges, (o1, o2) -> o1.max + o1.min - o2.max - o2.min);
-            }
-        }
-
-        int minIndex = 0;
-        int minDiff = Integer.MAX_VALUE;
-        for (int i = 0; i < includeRanges.size(); i++) {
-            FrameRateRange frameRateRange = includeRanges.get(i);
-            int diff = Math.abs(frameRateRange.min - targetFrameRate) + Math.abs(frameRateRange.max - targetFrameRate);
-            if(diff < minDiff){
-                minDiff = diff;
-                minIndex = i;
-            }
-        }
-
-        return includeRanges.get(minIndex);
-    }
-
     protected abstract int getNumberOfCameras();
 
     protected abstract void startPreview();
 
-    protected abstract void handleCaptureError(int error);
+    protected abstract void handleCaptureError(int error, String msg);
 
     void setSharedContext(EGLContext eglContext) {
         pEGLContext = eglContext;
     }
 
     void onFrameAvailable() {
-        // The images from front system camera are mirrored by default.
-        int facing = cameraSteady ? curCameraFacing : lastCameraFacing;
-        boolean mirrored = (facing == Constant.CAMERA_FACING_FRONT);
-
         VideoCaptureFrame frame = new VideoCaptureFrame(
                 // The format may be changed during processing.
                 // Create a copy of the format config to avoid
@@ -251,6 +230,14 @@ public abstract class VideoCapture extends VideoProducer {
             }
             LogUtil.i(TAG, "first capture frame detected");
             firstFrame = false;
+        }
+    }
+
+    @Override
+    protected void onConsumeVideoFrameError(Exception e) {
+        super.onConsumeVideoFrameError(e);
+        if (stateListener != null) {
+            stateListener.onCameraCaptureError(ERROR_CONSUME_VIDEO_FRAME, e.toString());
         }
     }
 

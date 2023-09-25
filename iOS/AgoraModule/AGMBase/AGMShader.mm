@@ -121,20 +121,22 @@ GLuint AGMCreateProgramFromFragmentSource(const char fragmentShaderSource[]) {
 
 BOOL AGMCreateVertexBuffer(GLuint *vertexBuffer, GLuint *vertexArray) {
 #if !TARGET_OS_IPHONE
-  glGenVertexArrays(1, vertexArray);
-  if (*vertexArray == 0) {
-    return NO;
-  }
+    glGenVertexArrays(1, vertexArray);
+    if (*vertexArray == 0) {
+        return NO;
+    }
   glBindVertexArray(*vertexArray);
 #endif
-  glGenBuffers(1, vertexBuffer);
-  if (*vertexBuffer == 0) {
-    glDeleteVertexArrays(1, vertexArray);
-    return NO;
-  }
-  glBindBuffer(GL_ARRAY_BUFFER, *vertexBuffer);
-  glBufferData(GL_ARRAY_BUFFER, 4 * 4 * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
-  return YES;
+    glGenBuffers(1, vertexBuffer);
+    if (*vertexBuffer == 0) {
+        glDeleteVertexArrays(1, vertexArray);
+        return NO;
+    }
+    if (vertexBuffer != NULL) {
+        glBindBuffer(GL_ARRAY_BUFFER, *vertexBuffer);
+        glBufferData(GL_ARRAY_BUFFER, 4 * 4 * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
+    }
+    return vertexBuffer != NULL;
 }
 
 // Set vertex data to the currently bound vertex buffer.
