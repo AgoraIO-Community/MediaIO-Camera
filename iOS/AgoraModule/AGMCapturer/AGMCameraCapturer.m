@@ -609,6 +609,10 @@ static int captureVideoFPS;
         //        }
         width = CVPixelBufferGetWidth(pixelBuffer);
         const size_t height = CVPixelBufferGetHeight(pixelBuffer);
+        int presetH = [self getHeight:self.mSessionPreset];
+        if (presetH != 0 && presetH != height) {
+            [self changeSessionPreset:self.mSessionPreset];
+        }
         if (self.videoConfig.videoBufferType == AGMVideoBufferTypePixelBuffer) {
             AGMCVPixelBuffer *agmPixelBuffer = [[AGMCVPixelBuffer alloc] initWithPixelBuffer:pixelBuffer];
             [agmPixelBuffer setParamWithWidth:width
@@ -650,5 +654,18 @@ static int captureVideoFPS;
     }
 }
 
+- (int)getHeight: (AVCaptureSessionPreset)preset {
+    NSDictionary *presets = @{
+        AVCaptureSessionPreset1920x1080:@(1920),
+        AVCaptureSessionPreset1280x720:@(1280),
+        AVCaptureSessionPreset640x480:@(640),
+        AVCaptureSessionPreset3840x2160:@(3840),
+        AVCaptureSessionPresetiFrame960x540: @(960),
+        AVCaptureSessionPresetiFrame1280x720: @(1280),
+        AVCaptureSessionPreset352x288: @(352),
+    };
+    NSNumber *width = [presets objectForKey:preset];
+    return width.intValue;
+}
 
 @end
