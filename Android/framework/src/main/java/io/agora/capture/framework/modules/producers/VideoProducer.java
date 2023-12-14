@@ -26,23 +26,31 @@ public abstract class VideoProducer implements IVideoProducer {
             frame = pendingVideoFrame;
         }
 
-
         // The capture utilizes the environment OpenGL
         // context for preview texture, so the capture
         // thread and video channel thread use their
         // shared OpenGL context.
         // Thus updateTexImage() is valid here.
-        frame.surfaceTexture.updateTexImage();
-        if (frame.textureTransform == null) frame.textureTransform = new float[16];
-        frame.surfaceTexture.getTransformMatrix(frame.textureTransform);
+        try {
+            frame.surfaceTexture.updateTexImage();
+            if (frame.textureTransform == null) frame.textureTransform = new float[16];
+            frame.surfaceTexture.getTransformMatrix(frame.textureTransform);
 
-        if (videoChannel != null) {
-            videoChannel.pushVideoFrame(frame);
-        }
-        synchronized (pendingVideoFrameLock){
-            pendingVideoFrame = null;
+            if (videoChannel != null) {
+                videoChannel.pushVideoFrame(frame);
+            }
+        } catch (Exception e) {
+           onConsumeVideoFrameError(e);
+        } finally {
+            synchronized (pendingVideoFrameLock) {
+                pendingVideoFrame = null;
+            }
         }
     };
+
+    protected void onConsumeVideoFrameError(Exception e){
+
+    }
 
     @Override
     public void connectChannel(int channelId) {

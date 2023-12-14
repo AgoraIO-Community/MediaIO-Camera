@@ -181,6 +181,9 @@ public class CameraVideoChannel extends VideoChannel {
 
     void setCameraStateListener(VideoCapture.VideoCaptureStateListener listener) {
         if (isRunning()) {
+            getChannelContext().getEglCore().setErrorCallback((code, msg) -> {
+                listener.onCameraCaptureError(Constant.ERROR_EGL_CORE, msg + ": EGL error: 0x" + Integer.toHexString(code));
+            });
             getHandler().postAtFrontOfQueue(() -> mVideoCapture.setCaptureStateListener(listener));
         }
     }
