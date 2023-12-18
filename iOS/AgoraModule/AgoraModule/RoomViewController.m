@@ -24,7 +24,7 @@
 //    AGMEAGLContext.sharedGLContext.coreVideoTextureCache;
 
     AGMCapturerVideoConfig *videoConfig = [AGMCapturerVideoConfig defaultConfig];
-    videoConfig.sessionPreset = AVCaptureSessionPreset1280x720;
+    videoConfig.sessionPreset = AVCaptureSessionPreset640x480;
     videoConfig.fps = 15;
     videoConfig.pixelFormat = AGMVideoPixelFormatBGRA;
     videoConfig.videoMirrored = YES;

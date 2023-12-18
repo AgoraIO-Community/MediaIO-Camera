@@ -95,7 +95,11 @@
 - (BOOL)start {
     if (![self.captureSession isRunning] && !self.hasStarted) {
         self.hasStarted = YES;
-        [self.captureSession startRunning];
+        dispatch_queue_t sessionQueue = dispatch_queue_create("xxx session queue", DISPATCH_QUEUE_SERIAL);
+        __weak AGMCameraCapturer *weakSelf = self;
+        dispatch_async(sessionQueue, ^{
+            [weakSelf.captureSession startRunning];
+        });
         _orientationHasChanged = NO;
         return YES;
     }
@@ -105,7 +109,11 @@
 - (void)stop {
     self.hasStarted = NO;
     if ([self.captureSession isRunning]) {
-        [self.captureSession stopRunning];
+        dispatch_queue_t sessionQueue = dispatch_queue_create("xxx session queue", DISPATCH_QUEUE_SERIAL);
+        __weak AGMCameraCapturer *weakSelf = self;
+        dispatch_async(sessionQueue, ^{
+            [weakSelf.captureSession stopRunning];
+        });
         _orientationHasChanged = NO;
     }
 }
@@ -498,11 +506,14 @@
             [self.captureSession stopRunning];
         }
         _captureSession.sessionPreset = sessionPreset;
-        _mSessionPreset = sessionPreset;
-        
-        [self.captureSession startRunning];
-        
-        
+//        _mSessionPreset = sessionPreset;
+        dispatch_queue_t sessionQueue = dispatch_queue_create("xxx session queue", DISPATCH_QUEUE_SERIAL);
+        __weak AGMCameraCapturer *weakSelf = self;
+        dispatch_async(sessionQueue, ^{
+            if (!weakSelf.captureSession.running) {
+                [weakSelf.captureSession startRunning];
+            }
+        });
         return YES;
     }
     return NO;
@@ -609,8 +620,7 @@ static int captureVideoFPS;
         //        }
         width = CVPixelBufferGetWidth(pixelBuffer);
         const size_t height = CVPixelBufferGetHeight(pixelBuffer);
-        int presetH = [self getHeight:self.mSessionPreset];
-        if (presetH != 0 && presetH != height) {
+        if (![self.captureSession.sessionPreset isEqualToString:self.mSessionPreset]) {
             [self changeSessionPreset:self.mSessionPreset];
         }
         if (self.videoConfig.videoBufferType == AGMVideoBufferTypePixelBuffer) {
@@ -653,19 +663,4 @@ static int captureVideoFPS;
         }
     }
 }
-
-- (int)getHeight: (AVCaptureSessionPreset)preset {
-    NSDictionary *presets = @{
-        AVCaptureSessionPreset1920x1080:@(1920),
-        AVCaptureSessionPreset1280x720:@(1280),
-        AVCaptureSessionPreset640x480:@(640),
-        AVCaptureSessionPreset3840x2160:@(3840),
-        AVCaptureSessionPresetiFrame960x540: @(960),
-        AVCaptureSessionPresetiFrame1280x720: @(1280),
-        AVCaptureSessionPreset352x288: @(352),
-    };
-    NSNumber *width = [presets objectForKey:preset];
-    return width.intValue;
-}
-
 @end

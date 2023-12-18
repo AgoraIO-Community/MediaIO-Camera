@@ -48,7 +48,6 @@
 		09E7CA47252B108000C3C2C8 /* AGMCapturerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 09E7CA46252B108000C3C2C8 /* AGMCapturerTests.m */; };
 		09E7CA49252B108000C3C2C8 /* AGMCapturer.h in Headers */ = {isa = PBXBuildFile; fileRef = 09E7CA39252B108000C3C2C8 /* AGMCapturer.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		09E7CA4C252B108000C3C2C8 /* AGMCapturer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 09E7CA37252B108000C3C2C8 /* AGMCapturer.framework */; };
-		09E7CA5F252B200A00C3C2C8 /* AGMCameraCapturer.h in Headers */ = {isa = PBXBuildFile; fileRef = 09E7CA5B252B200A00C3C2C8 /* AGMCameraCapturer.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		09E7CA60252B200A00C3C2C8 /* AGMCapturerVideoConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = 09E7CA5C252B200A00C3C2C8 /* AGMCapturerVideoConfig.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		09E7CA61252B200A00C3C2C8 /* AGMCapturerVideoConfig.m in Sources */ = {isa = PBXBuildFile; fileRef = 09E7CA5D252B200A00C3C2C8 /* AGMCapturerVideoConfig.m */; };
 		09E7CA62252B200A00C3C2C8 /* AGMCameraCapturer.m in Sources */ = {isa = PBXBuildFile; fileRef = 09E7CA5E252B200A00C3C2C8 /* AGMCameraCapturer.m */; };
@@ -70,6 +69,7 @@
 		09E7CAD1252C4EE700C3C2C8 /* AGMVideoFrame.h in Headers */ = {isa = PBXBuildFile; fileRef = 09E7CAD0252C4EE700C3C2C8 /* AGMVideoFrame.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		09E7CAD4252C4F4F00C3C2C8 /* AGMCVPixelBuffer.h in Headers */ = {isa = PBXBuildFile; fileRef = 09E7CAD2252C4F4F00C3C2C8 /* AGMCVPixelBuffer.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		09E7CAD5252C4F4F00C3C2C8 /* AGMCVPixelBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = 09E7CAD3252C4F4F00C3C2C8 /* AGMCVPixelBuffer.m */; };
+		E75B489B2B2FEC15005E925A /* AGMCameraCapturer.h in Headers */ = {isa = PBXBuildFile; fileRef = E75B489A2B2FEC15005E925A /* AGMCameraCapturer.h */; settings = {ATTRIBUTES = (Public, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -180,7 +180,6 @@
 		09E7CA3F252B108000C3C2C8 /* AGMCapturerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AGMCapturerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		09E7CA46252B108000C3C2C8 /* AGMCapturerTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AGMCapturerTests.m; sourceTree = "<group>"; };
 		09E7CA48252B108000C3C2C8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		09E7CA5B252B200A00C3C2C8 /* AGMCameraCapturer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AGMCameraCapturer.h; sourceTree = "<group>"; };
 		09E7CA5C252B200A00C3C2C8 /* AGMCapturerVideoConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AGMCapturerVideoConfig.h; sourceTree = "<group>"; };
 		09E7CA5D252B200A00C3C2C8 /* AGMCapturerVideoConfig.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AGMCapturerVideoConfig.m; sourceTree = "<group>"; };
 		09E7CA5E252B200A00C3C2C8 /* AGMCameraCapturer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AGMCameraCapturer.m; sourceTree = "<group>"; };
@@ -207,6 +206,7 @@
 		09E7CAD0252C4EE700C3C2C8 /* AGMVideoFrame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AGMVideoFrame.h; sourceTree = "<group>"; };
 		09E7CAD2252C4F4F00C3C2C8 /* AGMCVPixelBuffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AGMCVPixelBuffer.h; sourceTree = "<group>"; };
 		09E7CAD3252C4F4F00C3C2C8 /* AGMCVPixelBuffer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AGMCVPixelBuffer.m; sourceTree = "<group>"; };
+		E75B489A2B2FEC15005E925A /* AGMCameraCapturer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AGMCameraCapturer.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -340,7 +340,7 @@
 		09E7CA38252B108000C3C2C8 /* AGMCapturer */ = {
 			isa = PBXGroup;
 			children = (
-				09E7CA5B252B200A00C3C2C8 /* AGMCameraCapturer.h */,
+				E75B489A2B2FEC15005E925A /* AGMCameraCapturer.h */,
 				09E7CA5E252B200A00C3C2C8 /* AGMCameraCapturer.m */,
 				09E7CA5C252B200A00C3C2C8 /* AGMCapturerVideoConfig.h */,
 				09E7CA5D252B200A00C3C2C8 /* AGMCapturerVideoConfig.m */,
@@ -432,8 +432,8 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E75B489B2B2FEC15005E925A /* AGMCameraCapturer.h in Headers */,
 				09E7CA49252B108000C3C2C8 /* AGMCapturer.h in Headers */,
-				09E7CA5F252B200A00C3C2C8 /* AGMCameraCapturer.h in Headers */,
 				09E7CA60252B200A00C3C2C8 /* AGMCapturerVideoConfig.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
