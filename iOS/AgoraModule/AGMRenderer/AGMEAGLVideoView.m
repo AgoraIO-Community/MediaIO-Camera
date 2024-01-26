@@ -50,6 +50,7 @@
 
 - (void)dealloc {
     [self invalidate];
+    [AGMLogUtil log:[NSString stringWithFormat:@"dealloc: %s", __func__]];
 }
 
 - (BOOL)isPaused {
@@ -57,10 +58,12 @@
 }
 
 - (void)setIsPaused:(BOOL)isPaused {
+    [AGMLogUtil log:[NSString stringWithFormat:@"Render DisplayLink Paused: %d", isPaused]];
     _displayLink.paused = isPaused;
 }
 
 - (void)invalidate {
+    [AGMLogUtil log:@"Render DisplayLink Invalidate"];
     [_displayLink invalidate];
 }
 
@@ -147,7 +150,7 @@
                            selector:@selector(didBecomeActive)
                                name:UIApplicationDidBecomeActiveNotification
                              object:nil];
-    
+    [AGMLogUtil log:@"init glkView"];
     // Frames are received on a separate thread, so we poll for current frame
     // using a refresh rate proportional to screen refresh frequency. This
     // occurs on the main thread.
@@ -186,6 +189,7 @@
     //  }
     
     NSLog(@"%s", __func__);
+    [AGMLogUtil log:[NSString stringWithFormat:@"dealloc: %s", __func__]];
 }
 
 #pragma mark - UIView
@@ -214,9 +218,11 @@
     // one used by |view|.
     id<AGMVideoFrame> frame = self.videoFrame;
     if (!frame || frame.timeStampMs == _lastDrawnFrametimeStampMs) {
+        [AGMLogUtil log:[NSString stringWithFormat:@"frame: %@ timeStampMs: %ld", frame.description, frame.timeStampMs]];
         return;
     }
     if (frame.timeStampMs == _lastDrawnFrametimeStampMs) {
+        [AGMLogUtil log:[NSString stringWithFormat:@"timeStampMs: %ld", frame.timeStampMs]];
         return;
     }
     CGSize resizeRatio = [self calcVertexCoordinatesRatio:self.glkView.bounds.size renderMode:_renderMode];
@@ -267,6 +273,7 @@
         return;
     } else {
         NSLog(@"Unsupport texture type.");
+        [AGMLogUtil log:[NSString stringWithFormat:@"Unsupport texture type: %@", frame.description]];
         return;
     }
     CVPixelBufferLockBaseAddress(pixelBuffer, 0);
@@ -478,6 +485,7 @@
 - (void)ensureGLContext {
     NSAssert(AGMEAGLContext.sharedGLContext.context, @"context shouldn't be nil");
     [[AGMEAGLContext sharedGLContext] useAsCurrentContext];
+    [AGMLogUtil log:[NSString stringWithFormat:@"Context: %lu", (unsigned long)[AGMEAGLContext sharedGLContext].context.API]];
 }
 
 - (CGSize)calcVertexCoordinatesRatio:(CGSize)parentSize renderMode:(AGMRenderMode)renderMode {

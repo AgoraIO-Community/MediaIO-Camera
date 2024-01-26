@@ -54,6 +54,26 @@
             // defaule value
             self.captureFormat = kCVPixelFormatType_420YpCbCr8BiPlanarFullRange;
         }
+        NSError *error;
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:[config dictionaryWithValuesForKeys:@[@"fps", @"sessionPreset", @"cameraPosition", @"pixelFormat", @"videoBufferType", @"autoRotateBuffers", @"videoMirrored"]]
+                                                           options:NSJSONWritingPrettyPrinted
+                                                             error:&error];
+        if (!jsonData) {
+            NSLog(@"转换失败: %@", error);
+            [AGMLogUtil log:[NSString stringWithFormat:@"Capture Config信息转Json失败: %@", error.localizedDescription]];
+        }
+        NSDictionary *dictionary = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:&error];
+        NSMutableDictionary *dict = [dictionary mutableCopy];
+        
+        UIDevice *currentDevice = [UIDevice currentDevice];
+        NSString *deviceName = currentDevice.name;
+        NSString *deviceModel = currentDevice.model;
+        NSString *deviceVersion = currentDevice.systemVersion;
+        dict[@"deviceName"] = deviceName;
+        dict[@"deviceModel"] = deviceModel;
+        dict[@"deviceVersion"] = deviceVersion;
+        
+        [AGMLogUtil log:[NSString stringWithFormat:@"Video Config: %@", dict] level:(AGMLogLevelInfo)];
         
 #if TARGET_OS_IPHONE
         _orientation = UIInterfaceOrientationPortrait;
@@ -99,6 +119,7 @@
         __weak AGMCameraCapturer *weakSelf = self;
         dispatch_async(sessionQueue, ^{
             [weakSelf.captureSession startRunning];
+            [AGMLogUtil log:@"captureSession startRunning"];
         });
         _orientationHasChanged = NO;
         return YES;
@@ -113,6 +134,7 @@
         __weak AGMCameraCapturer *weakSelf = self;
         dispatch_async(sessionQueue, ^{
             [weakSelf.captureSession stopRunning];
+            [AGMLogUtil log:@"captureSession stopRunning"];
         });
         _orientationHasChanged = NO;
     }
@@ -128,6 +150,7 @@
  */
 - (void)switchCamera {
     [self changeCameraInputDeviceisFront:![self isFrontCamera]];
+    [AGMLogUtil log: [NSString stringWithFormat:@"switchCamera: %d", [self isFrontCamera]]];
 }
 #endif
 
@@ -163,6 +186,7 @@
 #pragma mark - Private
 - (void)dealloc {
     NSLog(@"%s", __func__);
+    [AGMLogUtil log:[NSString stringWithFormat:@"dealloc: %s", __func__]];
 }
 
 #if TARGET_OS_IPHONE
@@ -232,8 +256,10 @@
         if ([_captureSession canAddOutput:self.videoOutput]) {
             [_captureSession addOutput:self.videoOutput];
         }
-        
+        [AGMLogUtil log:@"init captureSession"];
+        [AGMLogUtil log:[NSString stringWithFormat:@"mSessionPreset: %@", self.mSessionPreset]];
 #if TARGET_OS_IPHONE
+        [AGMLogUtil log:[NSString stringWithFormat:@"Thread: %@", [NSThread currentThread]]];
         if ([[NSThread currentThread] isMainThread]) {
             _orientation = [UIApplication sharedApplication].statusBarOrientation;
             [self setRelativeVideoOrientation];
@@ -274,6 +300,7 @@
         _backCameraInput = [[AVCaptureDeviceInput alloc] initWithDevice:[self backCamera] error:&error];
         if (error) {
             NSLog(@"获取后置摄像头失败~");
+            [AGMLogUtil log: [NSString stringWithFormat:@"获取后置摄像头失败~: %@", error]];
         }
     }
     self.camera = _backCameraInput.device;
@@ -286,6 +313,7 @@
         _frontCameraInput = [[AVCaptureDeviceInput alloc] initWithDevice:[self frontCamera] error:&error];
         if (error) {
             NSLog(@"获取前置摄像头失败~");
+            [AGMLogUtil log: [NSString stringWithFormat:@"获取前置摄像头失败~: %@", error]];
         }
     }
     self.camera = _frontCameraInput.device;
@@ -301,6 +329,7 @@
 }
 
 -(BOOL)supportsAVCaptureSessionPreset:(BOOL)isFront {
+    [AGMLogUtil log:[NSString stringWithFormat:@"isFront: %d, supportsAVCaptureSessionPreset: %@", isFront, _mSessionPreset]];
     if (isFront) {
         return [self.frontCameraInput.device supportsAVCaptureSessionPreset:_mSessionPreset];
     } else {
@@ -310,7 +339,9 @@
 
 -(void)changeCameraInputDeviceisFront:(BOOL)isFront {
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        [AGMLogUtil log: [NSString stringWithFormat:@"changeCameraInputDeviceisFront: %d", isFront]];
         [self.captureSession stopRunning];
+        [AGMLogUtil log: @"captureSession stopRunning"];
         if (isFront) {
             [self.captureSession removeInput:self.backCameraInput];
             if ([self.captureSession canAddInput:self.frontCameraInput]) {
@@ -344,6 +375,7 @@
             }
         }
         [self.captureSession startRunning];
+        [AGMLogUtil log: @"captureSession startRunning"];
         double delay = self.videoConfig.isLastFrame == YES ? 0.13 : 0;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             self.preCameraPosition = self.cameraPosition;
@@ -499,11 +531,11 @@
 
 #pragma mark - sessionPreset
 -(BOOL)changeSessionPreset:(AVCaptureSessionPreset)sessionPreset{
-    
     if ([self.captureSession canSetSessionPreset:sessionPreset]) {
-        
+        [AGMLogUtil log:[NSString stringWithFormat:@"changeSessionPreset: %@", sessionPreset]];
         if ([self.captureSession isRunning]) {
             [self.captureSession stopRunning];
+            [AGMLogUtil log:@"captureSession stopRunning"];
         }
         _captureSession.sessionPreset = sessionPreset;
 //        _mSessionPreset = sessionPreset;
@@ -512,10 +544,12 @@
         dispatch_async(sessionQueue, ^{
             if (!weakSelf.captureSession.running) {
                 [weakSelf.captureSession startRunning];
+                [AGMLogUtil log:@"captureSession startRunning"];
             }
         });
         return YES;
     }
+    [AGMLogUtil log:[NSString stringWithFormat:@"分辨率不支持: %@",sessionPreset]];
     return NO;
 }
 
@@ -601,7 +635,7 @@ static int captureVideoFPS;
     } else {
         ++count;
     }
-    NSLog(@"real fps: %d", captureVideoFPS);
+    [AGMLogUtil log:[NSString stringWithFormat:@"real fps: %d", captureVideoFPS]];
 }
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput didDropSampleBuffer:(nonnull CMSampleBufferRef)sampleBuffer fromConnection:(nonnull AVCaptureConnection *)connection {

@@ -10,7 +10,7 @@
 #import <AVFoundation/AVFoundation.h>
 
 NS_ASSUME_NONNULL_BEGIN
-typedef NS_ENUM(NSUInteger, AGMVideoPixelFormat) {
+typedef NS_ENUM(NSInteger, AGMVideoPixelFormat) {
     /** BGRA */
     AGMVideoPixelFormatBGRA   = 0,
     /** NV12. This is fullrange. */
@@ -29,7 +29,7 @@ typedef NS_ENUM(NSInteger, AGMVideoBufferType) {
 @interface AGMCapturerVideoConfig : NSObject
 + (instancetype)defaultConfig;
 /** Video frame per second. 3<=fps<=30 Defaule value is 15 fps.*/
-@property (nonatomic, assign) NSUInteger fps;
+@property (nonatomic, assign) NSInteger fps;
 /** Video preview resolution. Defaule value is AVCaptureSessionPreset640x480*/
 @property (nonatomic, assign) AVCaptureSessionPreset sessionPreset;
 /** Camera  position. Defaule value is AVCaptureDevicePositionFront*/

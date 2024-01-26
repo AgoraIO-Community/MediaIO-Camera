@@ -69,6 +69,8 @@
 		09E7CAD1252C4EE700C3C2C8 /* AGMVideoFrame.h in Headers */ = {isa = PBXBuildFile; fileRef = 09E7CAD0252C4EE700C3C2C8 /* AGMVideoFrame.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		09E7CAD4252C4F4F00C3C2C8 /* AGMCVPixelBuffer.h in Headers */ = {isa = PBXBuildFile; fileRef = 09E7CAD2252C4F4F00C3C2C8 /* AGMCVPixelBuffer.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		09E7CAD5252C4F4F00C3C2C8 /* AGMCVPixelBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = 09E7CAD3252C4F4F00C3C2C8 /* AGMCVPixelBuffer.m */; };
+		E732CE382B54D996004D6FB9 /* AGMLogUtil.h in Headers */ = {isa = PBXBuildFile; fileRef = E732CE342B54D996004D6FB9 /* AGMLogUtil.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		E732CE3B2B54D996004D6FB9 /* AGMLogUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = E732CE352B54D996004D6FB9 /* AGMLogUtil.m */; };
 		E75B489B2B2FEC15005E925A /* AGMCameraCapturer.h in Headers */ = {isa = PBXBuildFile; fileRef = E75B489A2B2FEC15005E925A /* AGMCameraCapturer.h */; settings = {ATTRIBUTES = (Public, ); }; };
 /* End PBXBuildFile section */
 
@@ -206,6 +208,8 @@
 		09E7CAD0252C4EE700C3C2C8 /* AGMVideoFrame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AGMVideoFrame.h; sourceTree = "<group>"; };
 		09E7CAD2252C4F4F00C3C2C8 /* AGMCVPixelBuffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AGMCVPixelBuffer.h; sourceTree = "<group>"; };
 		09E7CAD3252C4F4F00C3C2C8 /* AGMCVPixelBuffer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AGMCVPixelBuffer.m; sourceTree = "<group>"; };
+		E732CE342B54D996004D6FB9 /* AGMLogUtil.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AGMLogUtil.h; sourceTree = "<group>"; };
+		E732CE352B54D996004D6FB9 /* AGMLogUtil.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AGMLogUtil.m; sourceTree = "<group>"; };
 		E75B489A2B2FEC15005E925A /* AGMCameraCapturer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AGMCameraCapturer.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -404,6 +408,8 @@
 				09E7CAD0252C4EE700C3C2C8 /* AGMVideoFrame.h */,
 				09334D78252E21B800B5C28C /* AGMVideoViewShading.h */,
 				09E7CA8D252B629900C3C2C8 /* Info.plist */,
+				E732CE342B54D996004D6FB9 /* AGMLogUtil.h */,
+				E732CE352B54D996004D6FB9 /* AGMLogUtil.m */,
 			);
 			path = AGMBase;
 			sourceTree = "<group>";
@@ -458,6 +464,7 @@
 				0919708F2533702B00F94343 /* AGMNV12Texture.h in Headers */,
 				0919708B25335E3000F94343 /* AGMRGBATexture.h in Headers */,
 				09E7CAD4252C4F4F00C3C2C8 /* AGMCVPixelBuffer.h in Headers */,
+				E732CE382B54D996004D6FB9 /* AGMLogUtil.h in Headers */,
 				09E7CABF252B6A6800C3C2C8 /* AGMRGBATextureCache.h in Headers */,
 				09334D70252E1F6500B5C28C /* AGMOpenGLDefines.h in Headers */,
 				09E7CAD1252C4EE700C3C2C8 /* AGMVideoFrame.h in Headers */,
@@ -832,6 +839,7 @@
 				09E7CABB252B6A4600C3C2C8 /* AGMNV12TextureCache.m in Sources */,
 				09E7CAD5252C4F4F00C3C2C8 /* AGMCVPixelBuffer.m in Sources */,
 				09334D7C252E223900B5C28C /* AGMDefaultShader.mm in Sources */,
+				E732CE3B2B54D996004D6FB9 /* AGMLogUtil.m in Sources */,
 				0919708C25335E3000F94343 /* AGMRGBATexture.m in Sources */,
 				09334D77252E211B00B5C28C /* AGMShader.mm in Sources */,
 			);

@@ -24,3 +24,4 @@ static const unsigned char AGMBaseVersionString[] = "2.0.1";
 #import <AGMBase/AGMMacros.h>
 #import <AGMBase/AGMDefaultShader.h>
 #import <AGMBase/AGMShader.h>
+#import <AGMBase/AGMLogUtil.h>

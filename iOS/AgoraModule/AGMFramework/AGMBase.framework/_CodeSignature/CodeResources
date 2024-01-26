@@ -6,7 +6,7 @@
 	<dict>
 		<key>Headers/AGMBase.h</key>
 		<data>
-		nR0zS2dMKZZJ9wb9+lMIhUMvKwY=
+		SoW+DSXFtO5SMJHvUjZi8PjanBQ=
 		</data>
 		<key>Headers/AGMCVPixelBuffer.h</key>
 		<data>
@@ -19,6 +19,10 @@
 		<key>Headers/AGMEAGLContext.h</key>
 		<data>
 		kcvQu3p5qUh+U9Vb+anFbJKrJoc=
+		</data>
+		<key>Headers/AGMLogUtil.h</key>
+		<data>
+		HI49FfWzxJEkRXClZeW/4ZZfI/k=
 		</data>
 		<key>Headers/AGMMacros.h</key>
 		<data>
@@ -58,11 +62,11 @@
 		</data>
 		<key>Info.plist</key>
 		<data>
-		esp7nn2vPZ/8vutyQIfYL9x5szw=
+		5E/6QeI4KSLeLhxA6H8/QTE1d+4=
 		</data>
 		<key>Modules/module.modulemap</key>
 		<data>
-		V/rOnnMvLBv8FBJu6+gXfr+T6+k=
+		1LxEFQE2vYJNM0IGDTWgiALvNcg=
 		</data>
 	</dict>
 	<key>files2</key>
@@ -71,11 +75,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			nR0zS2dMKZZJ9wb9+lMIhUMvKwY=
+			SoW+DSXFtO5SMJHvUjZi8PjanBQ=
 			</data>
 			<key>hash2</key>
 			<data>
-			fOgbnRDUq8ihtrG/qjp7KxdXdqEbwRczeWzlh5oa78g=
+			UMlPMwByxO9CPt+cWbppMXzxKsU51rr27Qv+9ibql2M=
 			</data>
 		</dict>
 		<key>Headers/AGMCVPixelBuffer.h</key>
@@ -109,6 +113,17 @@
 			<key>hash2</key>
 			<data>
 			rCmuPNaOW75mvX3KSdl3RORJLEzjMxvB9wXZjGUDm/o=
+			</data>
+		</dict>
+		<key>Headers/AGMLogUtil.h</key>
+		<dict>
+			<key>hash</key>
+			<data>
+			HI49FfWzxJEkRXClZeW/4ZZfI/k=
+			</data>
+			<key>hash2</key>
+			<data>
+			1FQMG2VVWiRwAGM0hbCfrXG1plLvmewD0oOwwGjultw=
 			</data>
 		</dict>
 		<key>Headers/AGMMacros.h</key>
@@ -214,11 +229,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			V/rOnnMvLBv8FBJu6+gXfr+T6+k=
+			1LxEFQE2vYJNM0IGDTWgiALvNcg=
 			</data>
 			<key>hash2</key>
 			<data>
-			C8Qn2Y5q0zhmpTsE8aVHuC+JsRy/GA7Wsz1+mCwAADo=
+			8c5H6VXT89tYlYlY3tIyUL5PhTvwoMk+qVSLij0egYo=
 			</data>
 		</dict>
 	</dict>
