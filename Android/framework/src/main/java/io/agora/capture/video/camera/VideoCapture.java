@@ -4,8 +4,6 @@
 
 package io.agora.capture.video.camera;
 
-import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_FREEZED;
-
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.opengl.EGLContext;
@@ -15,6 +13,7 @@ import android.os.Looper;
 import java.util.List;
 
 import io.agora.capture.framework.modules.producers.VideoProducer;
+import io.agora.capture.framework.util.CameraUtils;
 import io.agora.capture.framework.util.FpsUtil;
 import io.agora.capture.framework.util.LogUtil;
 
@@ -104,8 +103,11 @@ public abstract class VideoCapture extends VideoProducer {
         void onCameraOpen();
 
         void onCameraClosed();
+    }
 
-        FrameRateRange onSelectCameraFpsRange(List<FrameRateRange> supportFpsRange, FrameRateRange selectedRange);
+
+    public interface FrameRateRangeSelector{
+        FrameRateRange onSelectCameraFpsRange(List<FrameRateRange> supportFpsRange, FrameRateRange selectedRange, int frameRateScaled);
     }
 
     private static final String TAG = VideoCapture.class.getSimpleName();
@@ -125,6 +127,7 @@ public abstract class VideoCapture extends VideoProducer {
     int pPreviewTextureId = -1;
     SurfaceTexture pPreviewSurfaceTexture;
     byte[] pYUVImage;
+    float[] pTextureTransform = null;
 
     boolean mNeedsPreview;
     int mPreviewWidth;
@@ -138,6 +141,10 @@ public abstract class VideoCapture extends VideoProducer {
     boolean firstFrame;
 
     VideoCaptureStateListener stateListener;
+
+    private FrameRateRangeSelector frameRateRangeSelector;
+
+    private boolean enableExactFrameRate;
 
     private FpsUtil fpsUtil;
 
@@ -213,7 +220,7 @@ public abstract class VideoCapture extends VideoProducer {
                 pPreviewSurfaceTexture,
                 pPreviewTextureId,
                 pYUVImage,
-                null,
+                pTextureTransform,
                 System.currentTimeMillis(),
                 pCameraNativeOrientation,
                 pInvertDeviceOrientationReadings);
@@ -248,5 +255,35 @@ public abstract class VideoCapture extends VideoProducer {
      */
     void setCaptureStateListener(VideoCaptureStateListener listener) {
         stateListener = listener;
+    }
+
+    public void setFrameRateRangeSelector(FrameRateRangeSelector frameRateRangeSelector) {
+        this.frameRateRangeSelector = frameRateRangeSelector;
+    }
+
+    public void enableExactFrameRange(boolean enable){
+        this.enableExactFrameRate = enable;
+    }
+
+    VideoCapture.FrameRateRange getClosestFrameRateRange(List<VideoCapture.FrameRateRange> ranges, int frameRate){
+        // API fps ranges are scaled up x1000 to avoid floating point.
+        int frameRateScaled = frameRate * 1000;
+        FrameRateRange frameRateRange;
+        if (enableExactFrameRate) {
+            frameRateRange = CameraUtils.getClosestFrameRateRangeExactly(
+                    ranges, frameRateScaled);
+        } else {
+            frameRateRange = CameraUtils.getClosestFrameRateRangeWebrtc(
+                    ranges, frameRateScaled);
+        }
+
+        if(frameRateRangeSelector != null){
+            FrameRateRange reSelectFpsRange = frameRateRangeSelector.onSelectCameraFpsRange(ranges, frameRateRange, frameRate);
+            if(reSelectFpsRange != null && ranges.contains(reSelectFpsRange)){
+                frameRateRange = reSelectFpsRange;
+            }
+        }
+
+        return frameRateRange;
     }
 }

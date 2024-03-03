@@ -94,7 +94,7 @@ public class MatrixOperatorGraphics extends MatrixOperator {
     }
 
     /** Converts a float[16] matrix array to android.graphics.Matrix. */
-    private static android.graphics.Matrix convertMatrixToAndroidGraphicsMatrix(float[] matrix4x4) {
+    public static android.graphics.Matrix convertMatrixToAndroidGraphicsMatrix(float[] matrix4x4) {
         // clang-format off
         float[] values = {
                 matrix4x4[0 * 4 + 0], matrix4x4[1 * 4 + 0], matrix4x4[3 * 4 + 0],

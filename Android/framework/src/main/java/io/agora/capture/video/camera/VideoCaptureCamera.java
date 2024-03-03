@@ -4,11 +4,6 @@
 
 package io.agora.capture.video.camera;
 
-import static io.agora.capture.video.camera.Constant.ERROR_ALLOCATE;
-import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_SERVICE;
-import static io.agora.capture.video.camera.Constant.ERROR_IN_USE;
-import static io.agora.capture.video.camera.Constant.ERROR_UNKNOWN;
-
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.ImageFormat;
@@ -25,8 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
+import io.agora.capture.framework.gles.MatrixOperatorGraphics;
 import io.agora.capture.framework.gles.core.GlUtil;
-import io.agora.capture.framework.util.CameraUtils;
 import io.agora.capture.framework.util.LogUtil;
 
 
@@ -193,6 +188,14 @@ public class VideoCaptureCamera
         pCameraNativeOrientation = cameraInfo.orientation;
         pInvertDeviceOrientationReadings = cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT;
 
+        android.graphics.Matrix transformMatrix = new android.graphics.Matrix();
+        transformMatrix.preTranslate(0.5f, 0.5f);
+        if (pInvertDeviceOrientationReadings) {
+            transformMatrix.preScale(-1f, 1f);
+        }
+        transformMatrix.preTranslate(-0.5f, -0.5f);
+        pTextureTransform = MatrixOperatorGraphics.convertMatrixFromAndroidGraphicsMatrix(transformMatrix);
+
         Camera.Parameters parameters = getCameraParameters(camera);
         if (parameters == null) {
             camera.release();
@@ -218,21 +221,9 @@ public class VideoCaptureCamera
         for (int[] range : listFpsRange) {
             ranges.add(new FrameRateRange(range[0], range[1]));
         }
-        // API fps ranges are scaled up x1000 to avoid floating point.
-        int frameRateScaled = frameRate * 1000;
-        FrameRateRange chosenRange =
-                CameraUtils.getClosestFrameRateRangeExactly(ranges, frameRateScaled);
-
-        if(stateListener != null){
-            FrameRateRange reSelectFpsRange = stateListener.onSelectCameraFpsRange(ranges, chosenRange);
-            if(reSelectFpsRange != null && ranges.contains(reSelectFpsRange)){
-                chosenRange = reSelectFpsRange;
-            }
-        }
-
+        FrameRateRange chosenRange = getClosestFrameRateRange(ranges, frameRate);
         int[] chosenFpsRange = new int[] {chosenRange.min, chosenRange.max};
         LogUtil.d(TAG, "allocate: Camera fps set to [" + chosenFpsRange[0] + "-" + chosenFpsRange[1] + "]" + ", desired fps is " + frameRate);
-
 
         // Calculate size.
         List<Camera.Size> listCameraSize = parameters.getSupportedPreviewSizes();

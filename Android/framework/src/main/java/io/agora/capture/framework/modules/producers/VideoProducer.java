@@ -1,7 +1,9 @@
 package io.agora.capture.framework.modules.producers;
 
+import android.graphics.Matrix;
 import android.os.Handler;
 
+import io.agora.capture.framework.gles.MatrixOperatorGraphics;
 import io.agora.capture.framework.modules.channels.VideoChannel;
 import io.agora.capture.framework.util.LogUtil;
 import io.agora.capture.video.camera.VideoCaptureFrame;
@@ -33,8 +35,18 @@ public abstract class VideoProducer implements IVideoProducer {
         // Thus updateTexImage() is valid here.
         try {
             frame.surfaceTexture.updateTexImage();
-            if (frame.textureTransform == null) frame.textureTransform = new float[16];
-            frame.surfaceTexture.getTransformMatrix(frame.textureTransform);
+
+            float[] surfaceTransform = new float[16];
+            frame.surfaceTexture.getTransformMatrix(surfaceTransform);
+
+            if (frame.textureTransform == null) {
+                frame.textureTransform = surfaceTransform;
+            } else {
+                Matrix applyMatrix = MatrixOperatorGraphics.convertMatrixToAndroidGraphicsMatrix(frame.textureTransform);
+                Matrix finalMatrix = MatrixOperatorGraphics.convertMatrixToAndroidGraphicsMatrix(surfaceTransform);
+                finalMatrix.preConcat(applyMatrix);
+                frame.textureTransform = MatrixOperatorGraphics.convertMatrixFromAndroidGraphicsMatrix(finalMatrix);
+            }
 
             if (videoChannel != null) {
                 videoChannel.pushVideoFrame(frame);
