@@ -33,6 +33,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.agora.capture.framework.gles.MatrixOperatorGraphics;
 import io.agora.capture.framework.gles.core.GlUtil;
@@ -92,8 +93,8 @@ public class VideoCaptureCamera2 extends VideoCapture {
             }
 
             changeCameraStateAndNotify(CameraState.STOPPED);
-            if (mPendingStartRequest) {
-                mPendingStartRequest = false;
+            if (mPendingStartRequestWhenClosed) {
+                mPendingStartRequestWhenClosed = false;
                 startCaptureMaybeAsync(false);
             }
 
@@ -237,7 +238,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
     private ImageReader mImageReader;
     private static CameraManager mCameraManager;
 
-    private volatile boolean mPendingStartRequest;
+    private volatile boolean mPendingStartRequestWhenClosed;
 
     private Range<Integer> mAeFpsRange;
     private CameraState mCameraState = CameraState.STOPPED;
@@ -260,6 +261,55 @@ public class VideoCaptureCamera2 extends VideoCapture {
     private boolean mIsExposureCompensationStarted = false;
     private boolean mFaceDetectSupported = false;
     private int mFaceDetectMode;
+
+    private final AtomicBoolean cameraAvailable = new AtomicBoolean(false);
+    private volatile boolean mPendingStartRequestWhenAvailled = false;
+
+    private final CameraManager.AvailabilityCallback availabilityCallback = new CameraManager.AvailabilityCallback() {
+        @Override
+        public void onCameraAvailable(@NonNull String cameraId) {
+            super.onCameraAvailable(cameraId);
+            LogUtil.d(TAG, "AvailabilityCallback >> onCameraAvailable cameraId=" + cameraId);
+            if(cameraId.equals(mCamera2Id)){
+                cameraAvailable.set(true);
+                if(mPendingStartRequestWhenAvailled){
+                    mPendingStartRequestWhenAvailled = false;
+                    startCaptureMaybeAsync(false);
+                }
+            }
+        }
+
+        @Override
+        public void onCameraUnavailable(@NonNull String cameraId) {
+            super.onCameraUnavailable(cameraId);
+            LogUtil.d(TAG, "AvailabilityCallback >> onCameraUnavailable cameraId=" + cameraId);
+            if (cameraId.equals(mCamera2Id)) {
+                cameraAvailable.set(false);
+                if (checkCameraState(CameraState.STARTED)) {
+                    stopCaptureAndBlockUntilStopped();
+                    mPendingStartRequestWhenAvailled = true;
+                }
+            }
+        }
+
+        @Override
+        public void onCameraAccessPrioritiesChanged() {
+            super.onCameraAccessPrioritiesChanged();
+            LogUtil.d(TAG, "AvailabilityCallback >> onCameraAccessPrioritiesChanged");
+        }
+
+        @Override
+        public void onPhysicalCameraAvailable(@NonNull String cameraId, @NonNull String physicalCameraId) {
+            super.onPhysicalCameraAvailable(cameraId, physicalCameraId);
+            LogUtil.d(TAG, "AvailabilityCallback >> onPhysicalCameraAvailable cameraId=" + cameraId + ", physicalCameraId=" + physicalCameraId);
+        }
+
+        @Override
+        public void onPhysicalCameraUnavailable(@NonNull String cameraId, @NonNull String physicalCameraId) {
+            super.onPhysicalCameraUnavailable(cameraId, physicalCameraId);
+            LogUtil.d(TAG, "AvailabilityCallback >> onPhysicalCameraUnavailable cameraId=" + cameraId + ", physicalCameraId=" + physicalCameraId);
+        }
+    };
 
     private CameraCharacteristics getCameraCharacteristics(String id) {
         try {
@@ -405,7 +455,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
     public boolean allocate(int width, int height, int frameRate, int facing) {
         super.allocate(width, height, frameRate, facing);
         LogUtil.d(TAG, "allocate: requested width: " + width + " height: " + height + " fps: " + frameRate);
-
+        mCameraManager.registerAvailabilityCallback(availabilityCallback, pChannelHandler);
         curCameraFacing = facing;
         synchronized (mCameraStateLock) {
             if (mCameraState == CameraState.OPENING || mCameraState == CameraState.CONFIGURING) {
@@ -522,15 +572,27 @@ public class VideoCaptureCamera2 extends VideoCapture {
 
     @Override
     public void startCaptureMaybeAsync(boolean needsPreview) {
-        LogUtil.d(TAG, "startCaptureMaybeAsync " + pPreviewTextureId);
+        LogUtil.d(TAG, "startCaptureMaybeAsync mCameraState=" + mCameraState
+                + ", pPreviewTextureId=" + pPreviewTextureId
+                + ", cameraAvailable=" + cameraAvailable.get()
+                + ", mPendingStartRequestWhenClosed=" + mPendingStartRequestWhenClosed
+                + ", mPendingStartRequestWhenAvailable=" + mPendingStartRequestWhenAvailled
+        );
         synchronized (mCameraStateLock) {
             if (mCameraState == CameraState.STOPPING) {
-                mPendingStartRequest = true;
+                mPendingStartRequestWhenClosed = true;
             } else if (mCameraState == CameraState.STOPPED) {
-                mNeedsPreview = needsPreview;
-                changeCameraStateAndNotify(CameraState.OPENING);
-                if (pPreviewTextureId == -1) pPreviewTextureId = GlUtil.createTextureObject(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
-                if (pPreviewTextureId != -1) startPreview();
+                if (!cameraAvailable.get()) {
+                    mPendingStartRequestWhenAvailled = true;
+                } else {
+                    mNeedsPreview = needsPreview;
+                    changeCameraStateAndNotify(CameraState.OPENING);
+                    if (pPreviewTextureId == -1)
+                        pPreviewTextureId = GlUtil.createTextureObject(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
+                    if (pPreviewTextureId != -1) {
+                        startPreview();
+                    }
+                }
             }
         }
     }
@@ -563,12 +625,6 @@ public class VideoCaptureCamera2 extends VideoCapture {
             } else {
                 LogUtil.w(TAG, "Camera is already stopped.");
             }
-
-            this.mIsCameraTorchStarted = false;
-            this.mIsmCameraZoomStarted = false;
-            this.mIsExposureCompensationStarted = false;
-            this.mSensorRect = null;
-            this.mMaxZoom = 1.0f;
         }
     }
 
@@ -576,6 +632,16 @@ public class VideoCaptureCamera2 extends VideoCapture {
     public void deallocate(boolean disconnect) {
         LogUtil.d(TAG, "deallocate " + disconnect);
         cameraSteady = false;
+
+        mIsCameraTorchStarted = false;
+        mIsmCameraZoomStarted = false;
+        mIsExposureCompensationStarted = false;
+        mSensorRect = null;
+        mMaxZoom = 1.0f;
+
+        mPendingStartRequestWhenClosed = false;
+        mPendingStartRequestWhenAvailled = false;
+
         stopCaptureAndBlockUntilStopped();
 
         if (pPreviewTextureId != -1) {
@@ -584,6 +650,9 @@ public class VideoCaptureCamera2 extends VideoCapture {
             LogUtil.d(this, "EGL >> deallocate glDeleteTextures texture=" + pPreviewTextureId );
             pPreviewTextureId = -1;
         }
+
+        mCameraManager.unregisterAvailabilityCallback(availabilityCallback);
+        cameraAvailable.set(false);
     }
 
     @Override
