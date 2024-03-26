@@ -53,22 +53,22 @@ public class CameraVideoManager {
     }
 
     public static CameraVideoManager create(Context context, IPreprocessor preprocessor, int facing){
-        return create(context, preprocessor, facing, false);
+        return create(context, preprocessor, facing, false, false);
     }
 
-    public static CameraVideoManager create(Context context, IPreprocessor preprocessor, int facing, boolean enableDebug){
+    public static CameraVideoManager create(Context context, IPreprocessor preprocessor, int facing, boolean enableDebug, boolean useCamera2){
         if (sInstance == null) {
             synchronized (CameraVideoManager.class) {
                 if (sInstance == null) {
                     sInstance = new CameraVideoManager();
                     LogUtil.setDEBUG(enableDebug);
-                    sInstance.init(context, preprocessor, facing);
+                    sInstance.init(context, preprocessor, facing, useCamera2);
                 } else {
-                    throw new IllegalStateException("The instance of cameraVideoManager has been created, please call getInstance() instead.");
+                    sInstance.init(context, preprocessor, facing, useCamera2);
                 }
             }
         } else {
-            throw new IllegalStateException("The instance of cameraVideoManager has been created, please call getInstance() instead.");
+            sInstance.init(context, preprocessor, facing, useCamera2);
         }
         return sInstance;
     }
@@ -92,7 +92,7 @@ public class CameraVideoManager {
      *               and Constant.CAMERA_FACING_BACK
      * @see io.agora.capture.video.camera.Constant
      */
-    private void init(Context context, IPreprocessor preprocessor, int facing) {
+    private void init(Context context, IPreprocessor preprocessor, int facing, boolean useCamera2) {
         VideoModule videoModule = VideoModule.instance();
         if (!videoModule.hasInitialized()) {
             videoModule.init(context);
@@ -101,11 +101,13 @@ public class CameraVideoManager {
         // The preprocessor must be set before
         // the video channel starts
         videoModule.setPreprocessor(CHANNEL_ID, preprocessor);
-        videoModule.startChannel(CHANNEL_ID);
-        videoModule.enableOffscreenMode(CHANNEL_ID, true);
         mCameraChannel = (CameraVideoChannel)
                 videoModule.getVideoChannel(CHANNEL_ID);
         mCameraChannel.setFacing(facing);
+        mCameraChannel.setUseCamera2(useCamera2);
+        videoModule.startChannel(CHANNEL_ID);
+        videoModule.enableOffscreenMode(CHANNEL_ID, true);
+
     }
 
     public void setPreprocessor(IPreprocessor preprocessor) {
@@ -413,6 +415,20 @@ public class CameraVideoManager {
         checkAvailable();
         if (mCameraChannel != null) {
             mCameraChannel.setCameraStateListener(listener);
+        }
+    }
+
+    public void setFrameRateSelector(VideoCapture.FrameRateRangeSelector selector) {
+        checkAvailable();
+        if (mCameraChannel != null) {
+            mCameraChannel.setFrameRateSelector(selector);
+        }
+    }
+
+    public void enableExactFrameRange(boolean enable){
+        checkAvailable();
+        if (mCameraChannel != null) {
+            mCameraChannel.enableExactFrameRange(enable);
         }
     }
 

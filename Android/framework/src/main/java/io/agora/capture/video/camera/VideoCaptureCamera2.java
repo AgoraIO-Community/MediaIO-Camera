@@ -4,16 +4,10 @@
 
 package io.agora.capture.video.camera;
 
-import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_DEVICE;
-import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_DISABLED;
-import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_DISCONNECTED;
-import static io.agora.capture.video.camera.Constant.ERROR_CAMERA_SERVICE;
-import static io.agora.capture.video.camera.Constant.ERROR_CANNOT_OPEN_MORE;
-import static io.agora.capture.video.camera.Constant.ERROR_IN_USE;
-
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.ImageFormat;
+import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -29,6 +23,7 @@ import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.os.Build;
 import android.util.Range;
+import android.util.Rational;
 import android.util.Size;
 import android.view.Surface;
 
@@ -38,9 +33,10 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.agora.capture.framework.gles.MatrixOperatorGraphics;
 import io.agora.capture.framework.gles.core.GlUtil;
-import io.agora.capture.framework.util.CameraUtils;
 import io.agora.capture.framework.util.LogUtil;
 
 /**
@@ -62,6 +58,10 @@ public class VideoCaptureCamera2 extends VideoCapture {
             cameraSteady = true;
             firstFrame = true;
             createPreviewObjectsAndStartPreviewOrFail();
+
+            if (stateListener != null) {
+                stateListener.onCameraOpen();
+            }
         }
 
         @Override
@@ -93,8 +93,8 @@ public class VideoCaptureCamera2 extends VideoCapture {
             }
 
             changeCameraStateAndNotify(CameraState.STOPPED);
-            if (mPendingStartRequest) {
-                mPendingStartRequest = false;
+            if (mPendingStartRequestWhenClosed) {
+                mPendingStartRequestWhenClosed = false;
                 startCaptureMaybeAsync(false);
             }
 
@@ -152,13 +152,26 @@ public class VideoCaptureCamera2 extends VideoCapture {
             LogUtil.d(TAG, "CameraPreviewSessionListener.onConfigured");
             mPreviewSession = cameraCaptureSession;
             try {
+
+
                 // This line triggers the preview. A |listener| is registered to receive the actual
                 // capture result details. A CrImageReaderListener will be triggered every time a
                 // downloaded image is ready. Since |handler| is null, we'll work on the current
                 // Thread Looper.
                 if (mCameraState == CameraState.CONFIGURING) {
-                    mPreviewSession.setRepeatingRequest(
-                            mPreviewRequest, null, null);
+                    mPreviewSession.setRepeatingRequest(mPreviewRequest, null, null);
+
+                    if (mIsCameraTorchStarted && VideoCaptureCamera2.this.mTorchMode != 0) {
+                        setTorchMode(VideoCaptureCamera2.this.mTorchMode == 1);
+                    }
+
+                    if (!VideoCaptureCamera2.this.mIsmCameraZoomStarted && VideoCaptureCamera2.this.mCameraZoomFactor > 0.0F) {
+                        VideoCaptureCamera2.this.setZoom(VideoCaptureCamera2.this.mCameraZoomFactor);
+                    }
+
+                    if (!VideoCaptureCamera2.this.mIsExposureCompensationStarted && VideoCaptureCamera2.this.mCameraExposureCompensation != 0) {
+                        VideoCaptureCamera2.this.setExposureCompensation(VideoCaptureCamera2.this.mCameraExposureCompensation);
+                    }
                 }
             } catch (CameraAccessException | SecurityException | IllegalStateException
                     | IllegalArgumentException ex) {
@@ -225,7 +238,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
     private ImageReader mImageReader;
     private static CameraManager mCameraManager;
 
-    private volatile boolean mPendingStartRequest;
+    private volatile boolean mPendingStartRequestWhenClosed;
 
     private Range<Integer> mAeFpsRange;
     private CameraState mCameraState = CameraState.STOPPED;
@@ -235,6 +248,69 @@ public class VideoCaptureCamera2 extends VideoCapture {
     private int mImageUVSize;
     private byte[] mBuffer;
 
+    private float mMaxZoom = 1.0F;
+    private float mCameraZoomFactor = 1.0F;
+    private boolean mIsmCameraZoomStarted = false;
+    private Rect mSensorRect = null;
+    private float mLastZoomRatio = -1.0F;
+
+    private int mTorchMode = 0;
+    private boolean mIsCameraTorchStarted = false;
+
+    private int mCameraExposureCompensation = 0;
+    private boolean mIsExposureCompensationStarted = false;
+    private boolean mFaceDetectSupported = false;
+    private int mFaceDetectMode;
+
+    private final AtomicBoolean cameraAvailable = new AtomicBoolean(false);
+    private volatile boolean mPendingStartRequestWhenAvailled = false;
+
+    private final CameraManager.AvailabilityCallback availabilityCallback = new CameraManager.AvailabilityCallback() {
+        @Override
+        public void onCameraAvailable(@NonNull String cameraId) {
+            super.onCameraAvailable(cameraId);
+            LogUtil.d(TAG, "AvailabilityCallback >> onCameraAvailable cameraId=" + cameraId);
+            if(cameraId.equals(mCamera2Id)){
+                cameraAvailable.set(true);
+                if(mPendingStartRequestWhenAvailled){
+                    mPendingStartRequestWhenAvailled = false;
+                    startCaptureMaybeAsync(false);
+                }
+            }
+        }
+
+        @Override
+        public void onCameraUnavailable(@NonNull String cameraId) {
+            super.onCameraUnavailable(cameraId);
+            LogUtil.d(TAG, "AvailabilityCallback >> onCameraUnavailable cameraId=" + cameraId);
+            if (cameraId.equals(mCamera2Id)) {
+                cameraAvailable.set(false);
+                if (checkCameraState(CameraState.STARTED)) {
+                    stopCaptureAndBlockUntilStopped();
+                    mPendingStartRequestWhenAvailled = true;
+                }
+            }
+        }
+
+        @Override
+        public void onCameraAccessPrioritiesChanged() {
+            super.onCameraAccessPrioritiesChanged();
+            LogUtil.d(TAG, "AvailabilityCallback >> onCameraAccessPrioritiesChanged");
+        }
+
+        @Override
+        public void onPhysicalCameraAvailable(@NonNull String cameraId, @NonNull String physicalCameraId) {
+            super.onPhysicalCameraAvailable(cameraId, physicalCameraId);
+            LogUtil.d(TAG, "AvailabilityCallback >> onPhysicalCameraAvailable cameraId=" + cameraId + ", physicalCameraId=" + physicalCameraId);
+        }
+
+        @Override
+        public void onPhysicalCameraUnavailable(@NonNull String cameraId, @NonNull String physicalCameraId) {
+            super.onPhysicalCameraUnavailable(cameraId, physicalCameraId);
+            LogUtil.d(TAG, "AvailabilityCallback >> onPhysicalCameraUnavailable cameraId=" + cameraId + ", physicalCameraId=" + physicalCameraId);
+        }
+    };
+
     private CameraCharacteristics getCameraCharacteristics(String id) {
         try {
             return mCameraManager.getCameraCharacteristics(id);
@@ -242,6 +318,21 @@ public class VideoCaptureCamera2 extends VideoCapture {
             LogUtil.e(TAG, "getCameraCharacteristics: ");
         }
         return null;
+    }
+
+    private static float getMaxZoom(CameraCharacteristics cameraCharacteristics) {
+        if (cameraCharacteristics == null) {
+            LogUtil.w(TAG, "warning cameraCharacteristics is null");
+            return -1.0F;
+        } else {
+            Float maxZoom = (Float)cameraCharacteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM);
+            if (maxZoom == null) {
+                LogUtil.w(TAG, "warning get max zoom return null");
+                return -1.0F;
+            } else {
+                return maxZoom;
+            }
+        }
     }
 
     private void createPreviewObjectsAndStartPreviewOrFail() {
@@ -255,7 +346,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
         if (mCameraDevice == null) return false;
 
         mImageReader = ImageReader.newInstance(pCaptureFormat.getWidth(),
-                pCaptureFormat.getHeight(), pCaptureFormat.getPixelFormat(), 2);
+                pCaptureFormat.getHeight(), ImageFormat.YUV_420_888, 2);
         final CameraPreviewReaderListener imageReaderListener = new CameraPreviewReaderListener();
         mImageReader.setOnImageAvailableListener(imageReaderListener, pChannelHandler);
 
@@ -311,6 +402,10 @@ public class VideoCaptureCamera2 extends VideoCapture {
                 CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
 
         requestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, mAeFpsRange);
+
+        if (mFaceDetectSupported) {
+            mPreviewRequestBuilder.set(CaptureRequest.STATISTICS_FACE_DETECT_MODE, this.mFaceDetectMode);
+        }
     }
 
     private void changeCameraStateAndNotify(CameraState state) {
@@ -358,8 +453,9 @@ public class VideoCaptureCamera2 extends VideoCapture {
 
     @Override
     public boolean allocate(int width, int height, int frameRate, int facing) {
+        super.allocate(width, height, frameRate, facing);
         LogUtil.d(TAG, "allocate: requested width: " + width + " height: " + height + " fps: " + frameRate);
-
+        mCameraManager.registerAvailabilityCallback(availabilityCallback, pChannelHandler);
         curCameraFacing = facing;
         synchronized (mCameraStateLock) {
             if (mCameraState == CameraState.OPENING || mCameraState == CameraState.CONFIGURING) {
@@ -392,6 +488,8 @@ public class VideoCaptureCamera2 extends VideoCapture {
         final StreamConfigurationMap streamMap =
                 cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
 
+        mMaxZoom = getMaxZoom(cameraCharacteristics);
+
         // Find closest supported size.
         final Size[] supportedSizes = streamMap.getOutputSizes(ImageFormat.YUV_420_888);
         final Size closestSupportedSize = findClosestSizeInArray(supportedSizes, width, height);
@@ -420,8 +518,7 @@ public class VideoCaptureCamera2 extends VideoCapture {
             ranges.add(new FrameRateRange(
                     range.getLower() * fpsUnitFactor, range.getUpper() * fpsUnitFactor));
         }
-        final FrameRateRange aeRange =
-                CameraUtils.getClosestFrameRateRangeExactly(ranges, frameRate * 1000);
+        final FrameRateRange aeRange = getClosestFrameRateRange(ranges, frameRate);
         mAeFpsRange = new Range<Integer>(
                 aeRange.min / fpsUnitFactor, aeRange.max / fpsUnitFactor);
         LogUtil.d(TAG, "allocate: fps set to [" + mAeFpsRange.getLower() + "-" + mAeFpsRange.getUpper() + "]");
@@ -433,27 +530,69 @@ public class VideoCaptureCamera2 extends VideoCapture {
         pCaptureFormat = new VideoCaptureFormat(mCameraId, closestSupportedSize.getWidth(),
                 closestSupportedSize.getHeight(),
                 aeRange.max / fpsUnitFactor,
-                ImageFormat.YUV_420_888, GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
+                ImageFormat.NV21, GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
         pCameraNativeOrientation =
                 cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
         pInvertDeviceOrientationReadings =
                 cameraCharacteristics.get(CameraCharacteristics.LENS_FACING)
                 == CameraCharacteristics.LENS_FACING_FRONT;
 
+        android.graphics.Matrix transformMatrix = new android.graphics.Matrix();
+        transformMatrix.preTranslate(0.5f, 0.5f);
+        if (pInvertDeviceOrientationReadings) {
+            transformMatrix.preScale(-1f, 1f);
+        }
+        transformMatrix.preRotate(-1 * pCameraNativeOrientation);
+        transformMatrix.preTranslate(-0.5f, -0.5f);
+        pTextureTransform = MatrixOperatorGraphics.convertMatrixFromAndroidGraphicsMatrix(transformMatrix);
+
+
+        int[] availableFDModes = (int[])cameraCharacteristics.get(CameraCharacteristics.STATISTICS_INFO_AVAILABLE_FACE_DETECT_MODES);
+        Integer maxFDCount = (Integer)cameraCharacteristics.get(CameraCharacteristics.STATISTICS_INFO_MAX_FACE_COUNT);
+        if (availableFDModes != null && availableFDModes.length > 1 && maxFDCount != null && maxFDCount > 0) {
+            this.mFaceDetectSupported = true;
+            int modeSum = 0;
+            int[] var11 = availableFDModes;
+            int var12 = availableFDModes.length;
+
+            for(int var13 = 0; var13 < var12; ++var13) {
+                int fdMode = var11[var13];
+                modeSum += fdMode;
+            }
+
+            if (modeSum % 2 != 0) {
+                this.mFaceDetectMode = 1;
+            } else {
+                this.mFaceDetectMode = 2;
+            }
+        }
+
         return true;
     }
 
     @Override
     public void startCaptureMaybeAsync(boolean needsPreview) {
-        LogUtil.d(TAG, "startCaptureMaybeAsync " + pPreviewTextureId);
+        LogUtil.d(TAG, "startCaptureMaybeAsync mCameraState=" + mCameraState
+                + ", pPreviewTextureId=" + pPreviewTextureId
+                + ", cameraAvailable=" + cameraAvailable.get()
+                + ", mPendingStartRequestWhenClosed=" + mPendingStartRequestWhenClosed
+                + ", mPendingStartRequestWhenAvailable=" + mPendingStartRequestWhenAvailled
+        );
         synchronized (mCameraStateLock) {
             if (mCameraState == CameraState.STOPPING) {
-                mPendingStartRequest = true;
+                mPendingStartRequestWhenClosed = true;
             } else if (mCameraState == CameraState.STOPPED) {
-                mNeedsPreview = needsPreview;
-                changeCameraStateAndNotify(CameraState.OPENING);
-                if (pPreviewTextureId == -1) pPreviewTextureId = GlUtil.createTextureObject(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
-                if (pPreviewTextureId != -1) startPreview();
+                if (!cameraAvailable.get()) {
+                    mPendingStartRequestWhenAvailled = true;
+                } else {
+                    mNeedsPreview = needsPreview;
+                    changeCameraStateAndNotify(CameraState.OPENING);
+                    if (pPreviewTextureId == -1)
+                        pPreviewTextureId = GlUtil.createTextureObject(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
+                    if (pPreviewTextureId != -1) {
+                        startPreview();
+                    }
+                }
             }
         }
     }
@@ -493,6 +632,16 @@ public class VideoCaptureCamera2 extends VideoCapture {
     public void deallocate(boolean disconnect) {
         LogUtil.d(TAG, "deallocate " + disconnect);
         cameraSteady = false;
+
+        mIsCameraTorchStarted = false;
+        mIsmCameraZoomStarted = false;
+        mIsExposureCompensationStarted = false;
+        mSensorRect = null;
+        mMaxZoom = 1.0f;
+
+        mPendingStartRequestWhenClosed = false;
+        mPendingStartRequestWhenAvailled = false;
+
         stopCaptureAndBlockUntilStopped();
 
         if (pPreviewTextureId != -1) {
@@ -501,51 +650,250 @@ public class VideoCaptureCamera2 extends VideoCapture {
             LogUtil.d(this, "EGL >> deallocate glDeleteTextures texture=" + pPreviewTextureId );
             pPreviewTextureId = -1;
         }
+
+        mCameraManager.unregisterAvailabilityCallback(availabilityCallback);
+        cameraAvailable.set(false);
     }
 
     @Override
     public boolean isZoomSupported() {
-        return false;
+        if (this.mMaxZoom > 1.0F) {
+            return true;
+        } else {
+            CameraCharacteristics cameraCharacteristics = getCameraCharacteristics(this.mCamera2Id);
+            if (cameraCharacteristics != null) {
+                this.mMaxZoom = getMaxZoom(cameraCharacteristics);
+            }
+
+            return this.mMaxZoom > 1.0F;
+        }
+    }
+
+    private boolean checkCameraState(CameraState... states){
+        synchronized (mCameraStateLock){
+            for (CameraState state : states) {
+                if(mCameraState == state){
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     @Override
     public int setZoom(float zoomValue) {
-        return 0;
+        if (this.mPreviewSession == null || this.mPreviewRequestBuilder == null) {
+            this.mCameraZoomFactor = zoomValue;
+            return 0;
+        }
+
+        if (this.mIsmCameraZoomStarted && (double)Math.abs(this.mCameraZoomFactor - zoomValue) < 0.1) {
+            return 0;
+        }
+
+        this.mCameraZoomFactor = zoomValue;
+
+        LogUtil.d(TAG, "setCameraZoom api2 called zoomValue =" + zoomValue);
+        if (zoomValue <= 0.0F) {
+            return -1;
+        } else {
+            if (this.mSensorRect == null) {
+                CameraCharacteristics cameraCharacteristics = getCameraCharacteristics(this.mCamera2Id);
+                if (cameraCharacteristics == null) {
+                    LogUtil.w(TAG, "warning cameraCharacteristics is null");
+                    return -1;
+                }
+
+                this.mSensorRect = (Rect)cameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+                this.mMaxZoom = getMaxZoom(cameraCharacteristics);
+            }
+
+            if (Math.abs(this.mMaxZoom - 1.0F) < 0.001F) {
+                LogUtil.w(TAG, "Camera " + this.mCamera2Id + " does not support camera zoom");
+                return -1;
+            } else {
+                boolean needZoom = zoomValue >= 1.0F && zoomValue <= this.mMaxZoom && zoomValue != this.mLastZoomRatio;
+                if (!needZoom) {
+                    return -2;
+                } else {
+                    Rect zoomRect = this.cropRegionForZoom(zoomValue);
+                    this.mPreviewRequestBuilder.set(CaptureRequest.SCALER_CROP_REGION, zoomRect);
+                    this.mLastZoomRatio = zoomValue;
+                    if (this.mPreviewSession != null) {
+                        try {
+                            this.mIsmCameraZoomStarted = true;
+                            this.mPreviewSession.setRepeatingRequest(this.mPreviewRequestBuilder.build(), null, null);
+                        } catch (CameraAccessException var5) {
+                            var5.printStackTrace();
+                            return -3;
+                        } catch (IllegalStateException var6) {
+                            var6.printStackTrace();
+                            return -4;
+                        } catch (IllegalArgumentException var7) {
+                            var7.printStackTrace();
+                            return -4;
+                        }
+                    }
+
+                    return 0;
+                }
+            }
+        }
+    }
+
+    private Rect cropRegionForZoom(float ratio) {
+        int xCenter = this.mSensorRect.width() / 2;
+        int yCenter = this.mSensorRect.height() / 2;
+        int xDelta = (int)(0.5F * (float)this.mSensorRect.width() / ratio);
+        int yDelta = (int)(0.5F * (float)this.mSensorRect.height() / ratio);
+        return new Rect(xCenter - xDelta, yCenter - yDelta, xCenter + xDelta, yCenter + yDelta);
     }
 
     @Override
     public float getMaxZoom() {
-        return 0;
+        if (this.mMaxZoom <= 1.0F) {
+            CameraCharacteristics cameraCharacteristics = getCameraCharacteristics(this.mCamera2Id);
+            if (cameraCharacteristics != null) {
+                this.mMaxZoom = getMaxZoom(cameraCharacteristics);
+            }
+        }
+
+        return this.mMaxZoom;
     }
 
     @Override
     public boolean isTorchSupported() {
-        return false;
+        CameraCharacteristics cameraCharacteristics = getCameraCharacteristics(this.mCamera2Id);
+        if (cameraCharacteristics == null) {
+            LogUtil.w(TAG, "warning cameraCharacteristics is null");
+            return false;
+        } else {
+            Boolean available = (Boolean)cameraCharacteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+            return available == null ? false : available;
+        }
     }
 
     @Override
     public int setTorchMode(boolean isOn) {
-        return 0;
+        int mode = isOn ? 1 : -1;
+        if (this.mPreviewSession == null || this.mPreviewRequestBuilder == null) {
+            this.mTorchMode = mode;
+            return 0;
+        }
+
+        if (this.mIsCameraTorchStarted && this.mTorchMode == mode) {
+            return 0;
+        }
+
+        this.mTorchMode = mode;
+
+        LogUtil.d(TAG, "setTorchMode called camera api2, isOn: " + isOn);
+        CameraCharacteristics cameraCharacteristics = getCameraCharacteristics(this.mCamera2Id);
+        if (cameraCharacteristics == null) {
+            LogUtil.w(TAG, "warning cameraCharacteristics is null");
+            return -1;
+        } else {
+            Boolean available = (Boolean)cameraCharacteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+            boolean isFlashSupported = available == null ? false : available;
+            LogUtil.w(TAG, "setTorchMode isFlashSupported: " + (isFlashSupported ? "true" : "false"));
+            if (isFlashSupported) {
+                if (isOn) {
+                    this.mPreviewRequestBuilder.set(CaptureRequest.FLASH_MODE, 2);
+                } else {
+                    this.mPreviewRequestBuilder.set(CaptureRequest.FLASH_MODE, 0);
+                }
+
+                if (this.mPreviewSession != null) {
+                    try {
+                        this.mPreviewSession.setRepeatingRequest(this.mPreviewRequestBuilder.build(), null, null);
+                        this.mIsCameraTorchStarted = true;
+                        return 0;
+                    } catch (CameraAccessException var6) {
+                        var6.printStackTrace();
+                    } catch (IllegalStateException var7) {
+                        var7.printStackTrace();
+                    } catch (IllegalArgumentException var8) {
+                        var8.printStackTrace();
+                    } catch (NoClassDefFoundError var9) {
+                        var9.printStackTrace();
+                    }
+                }
+            } else {
+                LogUtil.w(TAG, "flash is not supported");
+            }
+
+            return -1;
+        }
     }
 
     @Override
     public void setExposureCompensation(int value) {
+        if (this.mPreviewSession == null || this.mPreviewRequestBuilder == null) {
+            this.mCameraExposureCompensation = value;
+            return;
+        }
 
+        if (this.mIsExposureCompensationStarted && this.mCameraExposureCompensation == value) {
+            return;
+        }
+
+        this.mCameraExposureCompensation = value;
+
+        LogUtil.d(TAG, "setExposureCompensation:" + value);
+        CameraCharacteristics cameraCharacteristics = getCameraCharacteristics(this.mCamera2Id);
+        if (cameraCharacteristics == null) {
+            return;
+        } else {
+            Rational step = (Rational)cameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP);
+            Range<Integer> range = (Range)cameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE);
+            if (range != null && step != null) {
+                int max = (Integer)range.getUpper();
+                int min = (Integer)range.getLower();
+                LogUtil.d(TAG, "compensation step=" + step + ", min=" + min + ", max=" + max);
+                if (value > max) {
+                    value = max;
+                }
+
+                if (value < min) {
+                    value = min;
+                }
+
+                if (this.mPreviewSession != null) {
+                    try {
+                        this.mIsExposureCompensationStarted = true;
+                        this.mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, value);
+                        this.mPreviewSession.setRepeatingRequest(this.mPreviewRequestBuilder.build(),null, null);
+                    } catch (CameraAccessException var8) {
+                        var8.printStackTrace();
+                    } catch (IllegalStateException var9) {
+                        var9.printStackTrace();
+                    } catch (IllegalArgumentException var10) {
+                        var10.printStackTrace();
+                    } catch (NoClassDefFoundError var11) {
+                        var11.printStackTrace();
+                    }
+                }
+            }
+        }
     }
 
     @Override
     public int getExposureCompensation() {
-        return 0;
+        return mCameraExposureCompensation;
     }
 
     @Override
     public int getMinExposureCompensation() {
-        return 0;
+        CameraCharacteristics cameraCharacteristics = getCameraCharacteristics(this.mCamera2Id);
+        Range<Integer> range = (Range)cameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE);
+        return range.getLower();
     }
 
     @Override
     public int getMaxExposureCompensation() {
-        return 0;
+        CameraCharacteristics cameraCharacteristics = getCameraCharacteristics(this.mCamera2Id);
+        Range<Integer> range = (Range)cameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE);
+        return range.getUpper();
     }
 
     private byte[] YUV_420_888toNV21(Image image) {

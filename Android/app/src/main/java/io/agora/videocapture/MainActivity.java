@@ -66,7 +66,50 @@ public class MainActivity extends AppCompatActivity {
         if (granted) imageLauncher.launch(null);
         else Toast.makeText(MainActivity.this, "读取权限被拒绝", Toast.LENGTH_SHORT).show();
     });
+
     private MatrixOperator watermarkMatrixOperator;
+
+
+    private final VideoCapture.VideoCaptureStateListener videoCaptureStateListener = new VideoCapture.VideoCaptureStateListener() {
+        @Override
+        public void onFirstCapturedFrame(int width, int height) {
+            Log.i(TAG, "onFirstCapturedFrame: " + width + "x" + height);
+        }
+
+        @Override
+        public void onCameraCaptureError(int error, String message) {
+            Log.i(TAG, "onCameraCaptureError: error:" + error + " " + message);
+            if (mCameraVideoManager != null) {
+                // When there is a camera error, the capture should
+                // be stopped to reset the internal states.
+                mCameraVideoManager.stopCapture();
+            }
+        }
+
+        @Override
+        public void onCameraOpen() {
+            runOnUiThread(() -> initCameraSettingView());
+        }
+
+        @Override
+        public void onCameraClosed() {
+
+        }
+    };
+
+    private VideoCapture.FrameRateRangeSelector frameRateRangeSelector = new VideoCapture.FrameRateRangeSelector() {
+        @Override
+        public VideoCapture.FrameRateRange onSelectCameraFpsRange(List<VideoCapture.FrameRateRange> supportFpsRange, VideoCapture.FrameRateRange selectedRange, int frameRateScaled) {
+            // 对特定机型进行适配，以处理在有些帧率下采集画面偏暗的问题
+            if(Build.MODEL.startsWith("SM-G99")){
+                VideoCapture.FrameRateRange desired = new VideoCapture.FrameRateRange(7 * 1000, 30 * 1000);
+                if(supportFpsRange.contains(desired)){
+                    return desired;
+                }
+            }
+            return null;
+        }
+    };
 
 
     @Override
@@ -102,56 +145,12 @@ public class MainActivity extends AppCompatActivity {
         // needs to load resource files from local storage.
         // The loading may block the video rendering for a
         // little while.
-        try {
-            mCameraVideoManager = CameraVideoManager.create(this, null, Constant.CAMERA_FACING_FRONT, true);
-        } catch (Exception e) {
-            mCameraVideoManager = CameraVideoManager.getInstance();
-        }
+        mCameraVideoManager = CameraVideoManager.create(this, null, Constant.CAMERA_FACING_FRONT, true, true);
 
-        mCameraVideoManager.setCameraStateListener(new VideoCapture.VideoCaptureStateListener() {
-            @Override
-            public void onFirstCapturedFrame(int width, int height) {
-                Log.i(TAG, "onFirstCapturedFrame: " + width + "x" + height);
-            }
+        mCameraVideoManager.enableExactFrameRange(true);
 
-            @Override
-            public void onCameraCaptureError(int error, String message) {
-                Log.i(TAG, "onCameraCaptureError: error:" + error + " " + message);
-                if (mCameraVideoManager != null) {
-                    // When there is a camera error, the capture should
-                    // be stopped to reset the internal states.
-                    mCameraVideoManager.stopCapture();
-                }
-            }
-
-            @Override
-            public void onCameraOpen() {
-                runOnUiThread(() -> initCameraSettingView());
-            }
-
-            @Override
-            public void onCameraClosed() {
-
-            }
-
-            @Override
-            public VideoCapture.FrameRateRange onSelectCameraFpsRange(List<VideoCapture.FrameRateRange> supportFpsRange,
-                                                                      VideoCapture.FrameRateRange selectedRange) {
-                // 对特定机型进行适配，以处理在有些帧率下采集画面偏暗的问题
-                if(Build.MODEL.startsWith("SM-G99")){
-                    VideoCapture.FrameRateRange desired = new VideoCapture.FrameRateRange(7 * 1000, 30 * 1000);
-                    if(supportFpsRange.contains(desired)){
-                        return desired;
-                    }
-                }
-
-                // 修改计算算法成webrtc的方式，这也是1.1.6以前的默认算法，好处的兼容性好
-                // return CameraUtils.getClosestFrameRateRangeWebrtc(supportFpsRange, 24);
-
-                // 返回null会使用内置处理法，计算更加准确
-                return null;
-            }
-        });
+        mCameraVideoManager.setCameraStateListener(videoCaptureStateListener);
+        mCameraVideoManager.setFrameRateSelector(frameRateRangeSelector);
 
         // Set camera capture configuration
         mCameraVideoManager.setPictureSize(640, 480);
@@ -226,7 +225,7 @@ public class MainActivity extends AppCompatActivity {
         if(zoomSupported){
             float maxZoom = mCameraVideoManager.getMaxZoom();
             zoomSeek.setMax(100);
-            zoomValueTv.setText(0 + "");
+            zoomValueTv.setText(1 + "");
             zoomSeek.setProgress(0);
             zoomSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
@@ -242,7 +241,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onStopTrackingTouch(SeekBar seekBar) {
                     int progress = seekBar.getProgress();
-                    float zoomValue = progress * 1.0f / 100 * maxZoom;
+                    float zoomValue = 1 + progress * 1.0f / 100 * maxZoom;
                     zoomValueTv.setText(zoomValue + "");
                     mCameraVideoManager.setZoom(zoomValue);
                 }
@@ -564,8 +563,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void finish() {
         super.finish();
-        mFinished = true;
-        CameraVideoManager.release();
+        //mFinished = true;
+        //CameraVideoManager.release();
     }
 
 

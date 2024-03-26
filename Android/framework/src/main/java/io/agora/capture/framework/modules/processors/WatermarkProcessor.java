@@ -236,8 +236,9 @@ public class WatermarkProcessor {
         if (!resetFBO) {
             return;
         }
-        resetFBO = false;
+
         releaseOutFBO();
+        resetFBO = false;
 
         int[] framebuffers = new int[1];
         GLES20.glGenFramebuffers(1, framebuffers, 0);

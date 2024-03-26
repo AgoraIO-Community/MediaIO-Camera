@@ -46,7 +46,10 @@ public class VideoCaptureFactory {
         }
     }
 
-    public static VideoCapture createVideoCapture(Context context) {
+    public static VideoCapture createVideoCapture(Context context, boolean useCamera2) {
+        if(useCamera2 && isLReleaseOrLater() && !isLegacyDevice(context)){
+            return new VideoCaptureCamera2(context);
+        }
         return new VideoCaptureCamera(context);
     }
 }

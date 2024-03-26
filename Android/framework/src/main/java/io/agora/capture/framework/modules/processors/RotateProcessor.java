@@ -50,12 +50,12 @@ public class RotateProcessor {
         }
 
         mRotateTexMatrix.setTransformMatrix(frame.textureTransform);
-        mRotateTexMatrix.setPreFlipH(frame.mirrored);
+        mRotateTexMatrix.setFlipH(frame.mirrored);
         mRotateTexMatrix.setRotation(frame.rotation);
 
         mRotateMVPMatrix.update(desiredWidth, desiredHeight, desiredWidth, desiredHeight);
-        mRotateMVPMatrix.setRotation(frame.mirrored ? surfaceRotation * -1 : surfaceRotation);
-        mRotateMVPMatrix.setFlipH(frame.mirrored);
+        mRotateMVPMatrix.setRotation(surfaceRotation);
+        //mRotateMVPMatrix.setFlipH(frame.mirrored);
 
         if (frame.format.getTexFormat() == GLES20.GL_TEXTURE_2D) {
             mRotateProgram2D.update(desiredWidth, desiredHeight);

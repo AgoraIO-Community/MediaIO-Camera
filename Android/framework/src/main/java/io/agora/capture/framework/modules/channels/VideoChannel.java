@@ -337,19 +337,19 @@ public class VideoChannel extends HandlerThread {
             makeDummySurfaceCurrent();
         }
 
-        if (mWatermarkProcessor != null) {
-            // Rotate the image to the final state.
-            // Further rotation procedure will not be
-            // necessary for all consumers.
-            frame = mWatermarkProcessor.process(frame);
-            makeDummySurfaceCurrent();
-        }
-
         if (mRotateProcessor != null) {
             // Rotate the image to the final state.
             // Further rotation procedure will not be
             // necessary for all consumers.
             frame = mRotateProcessor.process(frame, getChannelContext());
+            makeDummySurfaceCurrent();
+        }
+
+        if (mWatermarkProcessor != null) {
+            // Rotate the image to the final state.
+            // Further rotation procedure will not be
+            // necessary for all consumers.
+            frame = mWatermarkProcessor.process(frame);
             makeDummySurfaceCurrent();
         }
 

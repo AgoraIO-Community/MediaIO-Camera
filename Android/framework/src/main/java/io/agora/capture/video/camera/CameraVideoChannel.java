@@ -20,6 +20,7 @@ public class CameraVideoChannel extends VideoChannel {
     private int mHeight = HEIGHT;
     private int mFrameRate = FRAME_RATE;
     private int mFacing = FACING;
+    private boolean useCamera2 = false;
 
     public CameraVideoChannel(Context context, int id) {
         super(context, id);
@@ -27,7 +28,22 @@ public class CameraVideoChannel extends VideoChannel {
 
     @Override
     protected void onChannelContextCreated() {
-        mVideoCapture = VideoCaptureFactory.createVideoCapture(getChannelContext().getContext());
+        mVideoCapture = VideoCaptureFactory.createVideoCapture(getChannelContext().getContext(), useCamera2);
+    }
+
+    public void setUseCamera2(boolean useCamera2) {
+        boolean cameraChanged = this.useCamera2 != useCamera2;
+        this.useCamera2 = useCamera2;
+        if (mVideoCapture != null && cameraChanged) {
+            boolean capturing = mCapturedStarted;
+            if(capturing){
+                stopCapture();
+            }
+            mVideoCapture = VideoCaptureFactory.createVideoCapture(getChannelContext().getContext(), useCamera2);
+            if(capturing){
+                startCapture();
+            }
+        }
     }
 
     /**
@@ -187,6 +203,19 @@ public class CameraVideoChannel extends VideoChannel {
             getHandler().postAtFrontOfQueue(() -> mVideoCapture.setCaptureStateListener(listener));
         }
     }
+
+    void setFrameRateSelector(VideoCapture.FrameRateRangeSelector selector){
+        if (isRunning()) {
+            getHandler().postAtFrontOfQueue(() -> mVideoCapture.setFrameRateRangeSelector(selector));
+        }
+    }
+
+    void enableExactFrameRange(boolean enable){
+        if (isRunning()) {
+            getHandler().postAtFrontOfQueue(() -> mVideoCapture.enableExactFrameRange(enable));
+        }
+    }
+
 
 
 }
