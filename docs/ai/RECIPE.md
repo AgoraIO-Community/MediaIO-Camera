@@ -1,62 +1,46 @@
-# Android custom camera source
+# Android Custom Camera Source
 
 ## Overview
 
-Publish a custom Android camera or MediaIO source into an Agora RTC channel.
-
-Use this recipe when you want a working reference for Android, custom video source, MediaIO, RTC publishing.
+Capture and preview custom camera video on Android or iOS, and inspect the sample's integration path for publishing frames into RTC.
 
 Repository: [AgoraIO-Community/MediaIO-Camera](https://github.com/AgoraIO-Community/MediaIO-Camera)
 
-## Prerequisites
+## Prerequisites and Setup
 
-- An Agora account and project App ID.
-- The platform toolchain required by this repository.
-- A test device, simulator, browser, or runtime that supports the sample's audio/video path.
-- A second RTC client or sample instance for validating remote publish and subscribe behavior.
-
-## Configure
-
-Create or update the project configuration with:
-
-- `AGORA_APP_ID`
-
-For local testing, some Agora projects allow tokenless joins when App Certificate is disabled. For production, generate RTC tokens on a trusted server and renew them before expiration.
-
-For Android, request runtime camera and microphone permissions before joining the channel.
-
-## Run The Sample
-
-Open the project in Android Studio, configure the Agora App ID, grant camera and microphone permissions on the device, then run the sample. Join the same channel from another client to verify local preview, remote video, and audio routing.
+1. For Android, open `Android/` in Android Studio and inspect the `app` and `framework` modules. Follow `Android/README.md` for camera configuration.
+2. Grant camera permission, configure picture size, frame rate and facing before starting capture, and attach the sample's preview surface.
+3. Exercise start, switch-camera and stop in the existing demo. If adapting this library to RTC, inspect the app's existing frame path before adding custom publishing.
+4. For iOS, inspect the independent project in `iOS/AgoraModule/` and its bundled framework requirements before selecting signing and building.
 
 ## What To Check
 
-- The app registers Agora RTC event handlers before joining a channel.
-- Local media preview or local audio state appears after permissions are granted.
-- Remote users are rendered or heard when they publish audio/video.
-- `user-published` or native user-joined callbacks are handled for each media type the sample supports.
-- Leaving the channel stops local capture and releases RTC resources.
+- Verify preview size/orientation, front/back switching and mirror behavior.
+- Check stop/start and background/foreground transitions release and reopen the camera correctly.
+- When an RTC publishing path is configured, verify a second client receives the custom video frames.
 
-## Production Notes
+## Integration Notes
 
-- Never ship an App Certificate or privileged token generator in a client app.
-- Renew tokens from the SDK expiration callback before the current token expires.
-- Use subscriber/audience roles for users who should not publish media.
-- Keep UID types consistent across clients in the same channel.
-- For browser-based samples, deploy over HTTPS except when testing on `localhost`; for native samples, validate camera, microphone, and audio routing permissions on target devices.
+Camera capture and preview can be tested independently of RTC. Only require an Agora App ID for a selected RTC integration path; do not treat channel join as a prerequisite for the helper library itself.
+
+Keep App Certificates, customer secrets and privileged token generation on a trusted backend for production. Use only your own test credentials while configuring historical demos; do not commit them. Preserve the sample's existing dependency versions and lifecycle until a separate migration is tested.
+
+## Source References
+
+- [Android/README.md](../../Android/README.md)
+- [Android/app/build.gradle](../../Android/app/build.gradle)
+- [Android/framework/build.gradle](../../Android/framework/build.gradle)
+
+## Validation Status
+
+This recipe was checked against the repository's source and setup documents. The platform build and live service/device flow have not been run as part of this documentation change. Complete the checks above in an environment with the required SDKs, hardware and service access before treating it as a validated deployment.
 
 ## Implementation Prompt
 
 ```text
-You are working in `AgoraIO-Community/MediaIO-Camera`. Add or adapt this sample so a developer can run the android custom camera source end to end with Agora RTC.
+You are working in AgoraIO-Community/MediaIO-Camera. Use docs/ai/RECIPE.md and its linked source files to adapt the Android Custom Camera Source reference to this project.
 
-Goals:
-- Preserve the existing sample architecture and README commands.
-- Configure Agora credentials through environment variables or the platform-native configuration already used by the repo.
-- Register RTC event handlers before joining the channel.
-- Join a test channel, publish local media when the sample role allows it, and subscribe to remote users.
-- Clean up RTC resources when leaving the channel or closing the app.
-- Add production notes for token generation, renewal, and audience-only subscriber roles where applicable.
+Start by inspecting the actual sample directory and configuration described above. Resolve its listed missing prerequisites before claiming it is runnable. Preserve the existing architecture and compatible dependency versions. Implement the recipe's feature-specific flow, permissions and resource cleanup. Use a trusted backend for privileged credentials and tokens in production.
 
-Validate by running the project-specific build or launch command from the README and testing with a second client in the same channel.
+Run the repository-specific build or launch flow, then perform each What To Check item. Report the commands run, the observed results and anything blocked by service access, hardware or incomplete sample code. Do not claim live validation from a documentation or catalog build alone.
 ```
